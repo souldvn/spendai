@@ -1,0 +1,82 @@
+$padding: 24px 16px
+$radius: 20px
+
+@mixin flex-center
+  display: flex
+  align-items: center
+  justify-content: center
+
+.container
+  padding: $padding
+
+  .toppanel
+    display: flex
+    justify-content: space-between
+    align-items: center
+    margin-bottom: 190px
+
+  .lang
+    @include flex-center
+    gap: 8px
+    background-color: white
+    width: 74px
+    height: 25px
+    border-radius: $radius
+
+  .mainContent
+    display: flex
+    flex-direction: column
+    width: 100%
+    height: 300px
+    @include flex-center
+
+  .buttons
+    display: flex
+    gap: 50px
+    margin-top: 24px
+
+  .button
+    border-radius: $radius
+    @include flex-center
+    background-color: #e6e6e6
+    width: 100px
+    height: 39px
+
+  .bottomPanel
+    position: fixed
+    bottom: 0
+    left: 0
+    width: 100%
+    display: flex
+    background-color: #d9d9d9
+    height: 78px
+    gap: 110px
+    align-items: center
+    justify-content: center
+    padding: 0 16px
+
+    .bottombutton
+      @include flex-center
+      flex-direction: column
+
+      p
+        font-size: 13px
+
+.modalOverlay
+  position: fixed
+  top: 0
+  left: 0
+  width: 100vw
+  height: 100vh
+  background-color: rgba(0, 0, 0, 0.6) // Затемнение
+  display: flex
+  justify-content: center
+  align-items: center
+  z-index: 1000
+
+.modalContent
+  background: white
+  padding: 20px
+  border-radius: 15px
+  position: relative
+  z-index: 1001
