@@ -8,6 +8,7 @@ import Minis from "../components/icons/minus.svg";
 import Analysis from "../components/icons/bar-chart-2.svg";
 import Notifications from "../components/icons/notifications.svg";
 import AddExpense from "@/components/AddExpense";
+import ExpenseChart from "@/components/Pie/ExpenseChart";
 import s from "../styles/components/Home.module.sass";
 import { useRouter } from "next/router";
 
@@ -55,7 +56,7 @@ const MainScreen: React.FC = () => {
         <Moonlight />
       </div>
       <div className={s.mainContent}>
-        <Piejs data={mergedExpenses} /> {/* Передаем объединенные данные */}
+        <ExpenseChart/>
         <div className={s.buttons}>
           <button className={`${s.button} ${s.minus}`} onClick={() => setIsModalOpen(true)}>
             <Plus />
@@ -78,7 +79,8 @@ const MainScreen: React.FC = () => {
       {isModalOpen && (
         <div className={s.modalOverlay} onClick={() => setIsModalOpen(false)}>
           <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
-            <AddExpense onAddExpense={handleAddExpense} />
+          <AddExpense onAddExpense={handleAddExpense} onClose={() => setIsModalOpen(false)} />
+
           </div>
         </div>
       )}

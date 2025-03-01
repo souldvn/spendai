@@ -13,8 +13,6 @@
   },
   "pages\\index.tsx -> ../components/Pie/Pie": {
     "id": "pages\\index.tsx -> ../components/Pie/Pie",
-    "files": [
-      "static/chunks/_pages-dir-browser_components_Pie_Pie_tsx.js"
-    ]
+    "files": []
   }
 }

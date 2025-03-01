@@ -1,29 +1,57 @@
 import React, { useState } from "react";
+import { db } from "../firebaseConfig";
+import { addDoc, collection } from "firebase/firestore";
 import s from "../styles/components/AddExpense.module.sass";
 
 // Категории расходов
 const categories = [
-  { name: "Transport", color: "#FFC107" }, // Желтый
-  { name: "Food", color: "#FF5722" }, // Оранжевый
-  { name: "Entertainment", color: "#9C27B0" }, // Фиолетовый
-  { name: "Outfit", color: "#2196F3" }, // Синий
-  { name: "Gifts", color: "#E91E63" }, // Розовый
-  { name: "Subscriptions", color: "#4CAF50" }, // Зеленый
-  { name: "Education", color: "#03A9F4" }, // Голубой
-  { name: "Health", color: "#8BC34A" }, // Светло-зеленый
-  { name: "Household", color: "#FF9800" }, // Темно-оранжевый
-  { name: "Transfer", color: "#795548" }, // Коричневый
-  { name: "Lending", color: "#607D8B" }, // Серый
-  { name: "Other", color: "#000000" }, // Черный
+  { name: "Transport", color: "#FFC107" },
+  { name: "Food", color: "#FF5722" },
+  { name: "Entertainment", color: "#9C27B0" },
+  { name: "Outfit", color: "#2196F3" },
+  { name: "Gifts", color: "#E91E63" },
+  { name: "Subscriptions", color: "#4CAF50" },
+  { name: "Education", color: "#03A9F4" },
+  { name: "Health", color: "#8BC34A" },
+  { name: "Household", color: "#FF9800" },
+  { name: "Transfer", color: "#795548" },
+  { name: "Lending", color: "#607D8B" },
+  { name: "Other", color: "#000000" },
 ];
 
 type Props = {
   onAddExpense: (name: string, value: number, color: string) => void;
+  onClose: () => void; // Добавил сюда onClose
 };
 
-const AddExpense: React.FC<Props> = ({ onAddExpense }) => {
+const AddExpense: React.FC<Props> = ({ onAddExpense, onClose }) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
+
+  const handleSaveExpense = async () => {
+    if (!amount || !selectedCategory) return;
+
+    const category = categories.find((c) => c.name === selectedCategory);
+    if (!category) return;
+
+    try {
+      await addDoc(collection(db, "expenses"), {
+        category: selectedCategory,
+        amount: parseFloat(amount),
+        color: category.color,
+        timestamp: new Date(),
+      });
+
+      // Сбрасываем поля
+      setSelectedCategory(null);
+      setAmount("");
+
+      // Закрываем модалку после успешного сохранения
+      onClose();
+    } catch (error) {
+      console.error("Error adding expense: ", error);
+    }
+  };
 
   return (
     <div className={s.container}>
@@ -58,19 +86,7 @@ const AddExpense: React.FC<Props> = ({ onAddExpense }) => {
               <button className={s.cancel} onClick={() => setSelectedCategory(null)}>
                 Back
               </button>
-              <button
-                className={s.submit}
-                onClick={() => {
-                  if (amount && selectedCategory) {
-                    const category = categories.find((c) => c.name === selectedCategory);
-                    if (category) {
-                      onAddExpense(selectedCategory, parseFloat(amount), category.color);
-                      setSelectedCategory(null);
-                      setAmount("");
-                    }
-                  }
-                }}
-              >
+              <button className={s.submit} onClick={handleSaveExpense}>
                 Save
               </button>
             </div>
