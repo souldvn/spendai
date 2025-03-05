@@ -23,18 +23,19 @@ type Props = {
   onClose: () => void;
 };
 
-const AddExpense: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+const AddExpense: React.FC<Props> = ({ userId, onAddExpense, onClose }) => {
   const { addExpense } = useExpenses();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
 
   const handleSaveExpense = async () => {
-    if (!amount || !selectedCategory) return;
+    if (!amount || !selectedCategory || !userId) return; // Проверяем, есть ли userId
 
     const category = categories.find((c) => c.name === selectedCategory);
     if (!category) return;
 
-    await addExpense("userId", selectedCategory, parseFloat(amount), category.color);
+    await addExpense(userId, selectedCategory, parseFloat(amount), category.color);
+
     onClose();
   };
 

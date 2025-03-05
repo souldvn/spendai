@@ -15,7 +15,8 @@ const Piejs: React.FC<Props> = ({ data }) => {
   return (
     <PieChart width={250} height={250}>
       <Pie
-        data={data.length > 0 ? data : [{ name: "Empty", value: 1, color: "#D3D3D3" }]}
+        data={Array.isArray(data) && data.length > 0 ? data : [{ name: "Empty", value: 1, color: "#D3D3D3" }]}
+
         cx="50%"
         cy="50%"
         innerRadius={80}

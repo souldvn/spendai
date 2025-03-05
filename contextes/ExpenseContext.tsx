@@ -25,6 +25,7 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
   // Функция для загрузки расходов из Firestore
   const fetchExpenses = async (userId: string) => {
     if (!userId) return;
+    console.log("Fetching expenses...");
     setLoading(true);
 
     const q = query(collection(db, "expenses"), where("userId", "==", userId));
@@ -60,6 +61,7 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
   };
 
   useEffect(() => {
+    console.log("Fetching expenses for userId:", userId);
     if (userId) fetchExpenses(userId);
   }, [userId]);
 

@@ -17,17 +17,20 @@ const Piejs = dynamic(() => import("../components/Pie/Pie"), { ssr: false });
 
 const MainScreen: React.FC = () => {
   const router = useRouter();
-  const userId = router.query.userId as string | null;
+  // const userId = router.query.userId as string | null;
+  const userId = (router.query.userId as string | null) || "test-user"; // 👈 Добавляем fallback
+
   const { expenses, fetchExpenses } = useExpenses();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Загружаем данные при монтировании или когда userId меняется
   useEffect(() => {
-    if (userId && expenses.length === 0) {
+    if (userId) {
       fetchExpenses(userId);
     }
-  }, [userId, fetchExpenses]);
+  }, [userId]);
+  
 
   return (
     <div className={s.container}>
@@ -61,12 +64,17 @@ const MainScreen: React.FC = () => {
         </div>
       </div>
       {isModalOpen && (
-        <div className={s.modalOverlay} onClick={() => setIsModalOpen(false)}>
-          <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
-            <AddExpense onClose={() => setIsModalOpen(false)} />
-          </div>
-        </div>
-      )}
+  <div className={s.modalOverlay} onClick={() => setIsModalOpen(false)}>
+    <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
+      <AddExpense 
+        userId={userId} 
+        onAddExpense={(name, value, color) => console.log(name, value, color)} // заглушка
+        onClose={() => setIsModalOpen(false)} 
+      />
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
