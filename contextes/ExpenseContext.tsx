@@ -1,6 +1,15 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { db } from "../firebaseConfig";
-import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
 
 type Expense = {
   id: string;
@@ -13,6 +22,8 @@ type ExpensesContextType = {
   expenses: Expense[];
   addExpense: (userId: string, name: string, value: number, color: string) => Promise<void>;
   fetchExpenses: (userId: string) => Promise<void>;
+  deleteExpense: (userId: string, expenseId: string) => Promise<void>;
+  updateExpense: (userId: string, expenseId: string, updatedData: Partial<Expense>) => Promise<void>;
   loading: boolean;
 };
 
@@ -22,10 +33,9 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Функция для загрузки расходов из Firestore
+  // Загружаем расходы
   const fetchExpenses = async (userId: string) => {
     if (!userId) return;
-    console.log("Fetching expenses...");
     setLoading(true);
 
     const q = query(collection(db, "expenses"), where("userId", "==", userId));
@@ -45,7 +55,7 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
     setLoading(false);
   };
 
-  // Функция для добавления нового расхода
+  // Добавление расхода
   const addExpense = async (userId: string, name: string, value: number, color: string) => {
     if (!userId) return;
 
@@ -57,22 +67,49 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
       timestamp: new Date(),
     });
 
-    await fetchExpenses(userId); // Обновляем расходы после добавления
+    await fetchExpenses(userId);
+  };
+
+  // Удаление расхода (исправлено)
+  const deleteExpense = async (userId: string, expenseId: string) => {
+    if (!userId || !expenseId) return;
+
+    console.log("Deleting expense:", expenseId);
+    try {
+      await deleteDoc(doc(db, "expenses", expenseId));
+      await fetchExpenses(userId);
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+    }
+  };
+
+  // Редактирование расхода (исправлено)
+  const updateExpense = async (userId: string, expenseId: string, updatedData: Partial<Expense>) => {
+    if (!userId || !expenseId) return;
+
+    console.log("Updating expense:", expenseId, updatedData);
+    try {
+      await updateDoc(doc(db, "expenses", expenseId), {
+        category: updatedData.name,
+        amount: updatedData.value,
+      });
+      await fetchExpenses(userId);
+    } catch (error) {
+      console.error("Error updating expense:", error);
+    }
   };
 
   useEffect(() => {
-    console.log("Fetching expenses for userId:", userId);
     if (userId) fetchExpenses(userId);
   }, [userId]);
 
   return (
-    <ExpensesContext.Provider value={{ expenses, addExpense, fetchExpenses, loading }}>
+    <ExpensesContext.Provider value={{ expenses, addExpense, fetchExpenses, deleteExpense, updateExpense, loading }}>
       {children}
     </ExpensesContext.Provider>
   );
 };
 
-// Хук для удобного использования контекста
 export const useExpenses = () => {
   const context = useContext(ExpensesContext);
   if (!context) {
