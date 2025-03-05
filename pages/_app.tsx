@@ -1,24 +1,18 @@
-import "@/styles/global.sass";
+// pages/_app.tsx
+import "../styles/globals.sass";
 import type { AppProps } from "next/app";
-import { useEffect, useState } from "react";
+import { ExpensesProvider } from "../contextes/ExpenseContext";
+import { useRouter } from "next/router";
 
-const App = ({ Component, pageProps }: AppProps) => {
-  const [userId, setUserId] = useState<string | null>(null);
+function MyApp({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+  const userId = router.query.userId as string | null;
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("userId");
+  return (
+    <ExpensesProvider userId={userId}>
+      <Component {...pageProps} />
+    </ExpensesProvider>
+  );
+}
 
-    if (id) {
-      localStorage.setItem("userId", id);
-      setUserId(id);
-    } else {
-      const storedId = localStorage.getItem("userId");
-      if (storedId) setUserId(storedId);
-    }
-  }, []);
-
-  return <Component {...pageProps} userId={userId} />;
-};
-
-export default App;
+export default MyApp;

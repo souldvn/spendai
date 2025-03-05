@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { db } from "../firebaseConfig";
-import { addDoc, collection } from "firebase/firestore";
+import { useExpenses } from "../contextes/ExpenseContext";
 import s from "../styles/components/AddExpense.module.sass";
 
 const categories = [
@@ -18,82 +17,24 @@ const categories = [
   { name: "Other", color: "#000000" },
 ];
 
-type Props = {
-  userId: string | null;
-  onAddExpense: (name: string, value: number, color: string) => void;
-  onClose: () => void;
-};
-
-const AddExpense: React.FC<Props> = ({ userId, onAddExpense, onClose }) => {
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-
+const AddExpense: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { addExpense } = useExpenses();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
 
   const handleSaveExpense = async () => {
-    if (!amount || !selectedCategory || !userId || isSubmitting) return;
-    setIsSubmitting(true); // Блокируем повторный клик
-  
+    if (!amount || !selectedCategory) return;
+
     const category = categories.find((c) => c.name === selectedCategory);
     if (!category) return;
-  
-    try {
-      await addDoc(collection(db, "expenses"), {
-        userId,
-        category: selectedCategory,
-        amount: parseFloat(amount),
-        color: category.color,
-        timestamp: new Date(),
-      });
-  
-      setSelectedCategory(null);
-      setAmount("");
-      onAddExpense(selectedCategory, parseFloat(amount), category.color);
-    } catch (error) {
-      console.error("Ошибка при добавлении расхода: ", error);
-    } finally {
-      setIsSubmitting(false); // Разблокируем кнопку
-    }
+
+    await addExpense("userId", selectedCategory, parseFloat(amount), category.color);
+    onClose();
   };
 
   return (
     <div className={s.container}>
-      <div className={s.window}>
-        {!selectedCategory ? (
-          <>
-            <p className={s.title}>Add Expense</p>
-            <div className={s.table}>
-              {categories.map((category) => (
-                <button
-                  key={category.name}
-                  className={s.point}
-                  onClick={() => setSelectedCategory(category.name)}
-                >
-                  <div style={{ backgroundColor: category.color }} className={s.round}></div>
-                  <p>{category.name}</p>
-                </button>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className={s.amountInput}>
-            <p className={s.title}>Enter Amount for {selectedCategory}</p>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="Enter amount..."
-              className={s.input}
-            />
-            <div className={s.buttons}>
-              <button className={s.cancel} onClick={() => setSelectedCategory(null)}>Back</button>
-              <button className={s.submit} onClick={handleSaveExpense}>Save</button>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Остальной код */}
     </div>
   );
 };
