@@ -58,7 +58,7 @@ const MainScreen: React.FC = () => {
         <Moonlight />
       </div>
       <div className={s.mainContent}>
-        
+        <Piejs data={mergedExpenses} />
         <div className={s.buttons}>
           <button className={`${s.button} ${s.minus}`} onClick={() => setIsModalOpen(true)}>
             <Plus />
