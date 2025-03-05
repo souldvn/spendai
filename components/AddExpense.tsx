@@ -29,13 +29,16 @@ const AddExpense: React.FC<Props> = ({ userId, onAddExpense, onClose }) => {
   const [amount, setAmount] = useState("");
 
   const handleSaveExpense = async () => {
-    if (!amount || !selectedCategory || !userId) return; // Проверяем, есть ли userId
-
+    if (!amount || !selectedCategory || !userId) return;
+  
+    const value = parseFloat(amount);
+    if (isNaN(value)) return; // Проверяем, что число корректное
+  
     const category = categories.find((c) => c.name === selectedCategory);
     if (!category) return;
-
-    await addExpense(userId, selectedCategory, parseFloat(amount), category.color);
-
+    
+    await addExpense(selectedCategory, parseFloat(amount), category.color);
+  
     onClose();
   };
 

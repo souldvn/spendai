@@ -19,27 +19,28 @@ type Expense = {
 };
 
 type ExpensesContextType = {
+  userId: string | null;
   expenses: Expense[];
-  addExpense: (userId: string, name: string, value: number, color: string) => Promise<void>;
-  fetchExpenses: (userId: string) => Promise<void>;
-  deleteExpense: (userId: string, expenseId: string) => Promise<void>;
-  updateExpense: (userId: string, expenseId: string, updatedData: Partial<Expense>) => Promise<void>;
+  addExpense: (name: string, value: number, color: string) => Promise<void>;
+  fetchExpenses: () => Promise<void>;
+  deleteExpense: (expenseId: string) => Promise<void>;
+  updateExpense: (expenseId: string, updatedData: Partial<Expense>) => Promise<void>;
   loading: boolean;
 };
 
 const ExpensesContext = createContext<ExpensesContextType | undefined>(undefined);
 
 export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: string | null }> = ({ children, userId }) => {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(userId);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // 🔹 Загружаем расходы из Firestore
-  const fetchExpenses = async (userId: string) => {
-    if (!userId) return;
-    setLoading(true);
+  const fetchExpenses = async () => {
+    if (!currentUserId) return;
 
+    setLoading(true);
     try {
-      const q = query(collection(db, "expenses"), where("userId", "==", userId));
+      const q = query(collection(db, "expenses"), where("userId", "==", currentUserId));
       const querySnapshot = await getDocs(q);
       const fetchedExpenses: Expense[] = [];
 
@@ -60,54 +61,55 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
     }
   };
 
-  // 🔹 Добавление нового расхода
-  const addExpense = async (userId: string, name: string, value: number, color: string) => {
-    if (!userId) return;
+  const addExpense = async (name: string, value: number, color: string) => {
+    if (!currentUserId) return;
 
     try {
       await addDoc(collection(db, "expenses"), {
-        userId,
+        userId: currentUserId,
         category: name,
         amount: value,
         color,
         timestamp: new Date(),
       });
 
-      await fetchExpenses(userId);
+      await fetchExpenses();
     } catch (error) {
       console.error("Ошибка при добавлении расхода:", error);
     }
   };
 
-  // 🔹 Удаление расхода
-  const deleteExpense = async (userId: string, expenseId: string) => {
-    console.log("Удаление расхода", expenseId);
+  const deleteExpense = async (expenseId: string) => {
+    if (!currentUserId) return;
+
     try {
       const expenseRef = doc(db, "expenses", expenseId);
       await deleteDoc(expenseRef);
-      await fetchExpenses(userId);
+      await fetchExpenses();
     } catch (error) {
       console.error("Ошибка при удалении расхода:", error);
     }
   };
 
-  // 🔹 Обновление расхода
-  const updateExpense = async (userId: string, expenseId: string, updatedData: Partial<Expense>) => {
+  const updateExpense = async (expenseId: string, updatedData: Partial<Expense>) => {
+    if (!currentUserId) return;
+
     try {
       const expenseRef = doc(db, "expenses", expenseId);
       await updateDoc(expenseRef, updatedData);
-      await fetchExpenses(userId);
+      await fetchExpenses();
     } catch (error) {
       console.error("Ошибка при обновлении расхода:", error);
     }
   };
 
   useEffect(() => {
-    if (userId) fetchExpenses(userId);
+    if (userId) setCurrentUserId(userId);
+    if (userId) fetchExpenses();
   }, [userId]);
 
   return (
-    <ExpensesContext.Provider value={{ expenses, addExpense, fetchExpenses, deleteExpense, updateExpense, loading }}>
+    <ExpensesContext.Provider value={{ userId: currentUserId, expenses, addExpense, fetchExpenses, deleteExpense, updateExpense, loading }}>
       {children}
     </ExpensesContext.Provider>
   );

@@ -16,6 +16,8 @@ import s from "../styles/components/Home.module.sass";
 const Piejs = dynamic(() => import("../components/Pie/Pie"), { ssr: false });
 
 const MainScreen: React.FC = () => {
+
+
   const router = useRouter();
   // const userId = router.query.userId as string | null;
   const userId = (router.query.userId as string | null) || "test-user"; // 👈 Добавляем fallback
@@ -27,9 +29,11 @@ const MainScreen: React.FC = () => {
   // Загружаем данные при монтировании или когда userId меняется
   useEffect(() => {
     if (userId) {
-      fetchExpenses(userId);
+      fetchExpenses();
     }
   }, [userId]);
+
+  console.log("userId в MainScreen:", userId);
   
 
   return (
