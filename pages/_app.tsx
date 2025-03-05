@@ -1,5 +1,5 @@
-// pages/_app.tsx
-import "../styles/globals.sass";
+
+import "../styles/global.sass";
 import type { AppProps } from "next/app";
 import { ExpensesProvider } from "../contextes/ExpenseContext";
 import { useRouter } from "next/router";
