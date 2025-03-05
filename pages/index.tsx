@@ -8,7 +8,6 @@ import Minis from "../components/icons/minus.svg";
 import Analysis from "../components/icons/bar-chart-2.svg";
 import Notifications from "../components/icons/notifications.svg";
 import AddExpense from "@/components/AddExpense";
-import ExpenseChart from "@/components/Pie/ExpenseChart";
 import s from "../styles/components/Home.module.sass";
 import { useRouter } from "next/router";
 
@@ -59,7 +58,7 @@ const MainScreen: React.FC = () => {
         <Moonlight />
       </div>
       <div className={s.mainContent}>
-        <ExpenseChart userId={userId}/>
+        
         <div className={s.buttons}>
           <button className={`${s.button} ${s.minus}`} onClick={() => setIsModalOpen(true)}>
             <Plus />

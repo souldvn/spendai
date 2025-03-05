@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import s from "@/styles/pages/history.module.sass";
+import s from "../styles/pages/history.module.sass";
 import { db } from "../firebaseConfig";
 
 import { collection, query, where, getDocs } from "firebase/firestore";
