@@ -1,77 +1,81 @@
 import React, { useState } from "react";
-import s from "../styles/pages/history.module.sass";
 import { useExpenses } from "../contextes/ExpenseContext";
+import s from "../styles/pages/history.module.sass";
 import Back from "../components/icons/back.svg";
+import Modal from "./Modal";
 
 const History: React.FC<{ userId: string | null }> = ({ userId }) => {
-  const { expenses, deleteExpense, updateExpense, loading } = useExpenses();
-  const [editExpense, setEditExpense] = useState<{ id: string; name: string; value: number } | null>(null);
+  console.log("userId в History:", userId);
 
-  const handleDelete = async (expenseId: string) => {
-    if (userId) {
-      console.log("Trying to delete expense:", expenseId);
-      await deleteExpense(userId, expenseId);
-    }
+  const { expenses, deleteExpense } = useExpenses();
+  const [selectedExpense, setSelectedExpense] = useState<any | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Открываем модалку, записываем текущий расход в selectedExpense
+  const openModal = (expense: any) => {
+    console.log("Открываем модалку для расхода:", expense);
+    setSelectedExpense(expense);
+    setIsModalOpen(true);
   };
 
-  const handleEdit = async () => {
-    if (userId && editExpense) {
-      console.log("Trying to update expense:", editExpense);
-      await updateExpense(userId, editExpense.id, {
-        name: editExpense.name,
-        value: editExpense.value,
-      });
-      setEditExpense(null);
+  // Закрываем модалку
+  const closeModal = () => {
+    console.log("Закрываем модалку");
+    setSelectedExpense(null);
+    setIsModalOpen(false);
+  };
+
+  // Удаление расхода
+  const handleDelete = async () => {
+    console.log("handleDelete вызван");
+    
+    if (!selectedExpense) {
+      console.log("Ошибка: selectedExpense отсутствует");
+      return;
     }
+
+    if (!userId) {
+      console.log("Ошибка: userId отсутствует");
+      return;
+    }
+
+    console.log("Вызываем удаление для:", selectedExpense.id);
+
+    try {
+      await deleteExpense(userId, selectedExpense.id);
+      console.log("Удаление прошло успешно");
+    } catch (error) {
+      console.error("Ошибка при удалении:", error);
+    }
+
+    closeModal();
   };
 
   return (
     <div className={s.container}>
       <Back className={s.back} onClick={() => history.back()} />
-      <h2 className={s.title}>Expense History</h2>
-      {loading ? (
-        <p>Loading...</p>
-      ) : expenses.length === 0 ? (
-        <p className={s.empty}>No expenses yet.</p>
+      <h2 className={s.title}>История расходов</h2>
+
+      {expenses.length === 0 ? (
+        <p className={s.empty}>Расходов пока нет.</p>
       ) : (
         <div className={s.list}>
           {expenses.map((expense) => (
-            <div key={expense.id} className={s.item}>
+            <div key={expense.id} className={s.item} onClick={() => openModal(expense)}>
               <div className={s.colorTag} style={{ backgroundColor: expense.color }} />
               <div className={s.details}>
                 <p className={s.name}>{expense.name}</p>
                 <p className={s.value}>${expense.value.toFixed(2)}</p>
               </div>
-              <button className={s.deleteButton} onClick={() => handleDelete(expense.id)}>
-                ❌
-              </button>
-              <button className={s.editButton} onClick={() => setEditExpense(expense)}>
-                ✏️
-              </button>
             </div>
           ))}
         </div>
       )}
 
-      {/* Модальное окно редактирования */}
-      {editExpense && (
-        <div className={s.modalOverlay} onClick={() => setEditExpense(null)}>
-          <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h3>Edit Expense</h3>
-            <input
-              type="text"
-              value={editExpense.name}
-              onChange={(e) => setEditExpense({ ...editExpense, name: e.target.value })}
-            />
-            <input
-              type="number"
-              value={editExpense.value}
-              onChange={(e) => setEditExpense({ ...editExpense, value: Number(e.target.value) })}
-            />
-            <button onClick={handleEdit}>Save</button>
-            <button onClick={() => setEditExpense(null)}>Cancel</button>
-          </div>
-        </div>
+      {isModalOpen && selectedExpense && (
+        <Modal onClose={closeModal} onDelete={handleDelete}>
+          <h3>Удалить расход "{selectedExpense.name}"?</h3>
+        </Modal>
       )}
     </div>
   );
