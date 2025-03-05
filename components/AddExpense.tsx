@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import { db } from "../firebaseConfig";
 import { addDoc, collection } from "firebase/firestore";
 import s from "../styles/components/AddExpense.module.sass";
-import { useRouter } from "next/router";
-
 
 const categories = [
   { name: "Transport", color: "#FFC107" },
@@ -21,27 +19,27 @@ const categories = [
 ];
 
 type Props = {
-  userId: string | null; // Добавляем userId
+  userId: string | null;
   onAddExpense: (name: string, value: number, color: string) => void;
-  onClose: () => void; // Добавляем onClose
-
+  onClose: () => void;
 };
 
-const AddExpense: React.FC<Props> = ({ userId, onAddExpense }) => {
-
-  
+const AddExpense: React.FC<Props> = ({ userId, onAddExpense, onClose }) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
 
   const handleSaveExpense = async () => {
-    if (!amount || !selectedCategory || !userId) return; // Проверяем, есть ли userId
+    if (!amount || !selectedCategory || !userId) {
+      alert("User ID is missing. Please reload the page.");
+      return;
+    }
 
     const category = categories.find((c) => c.name === selectedCategory);
     if (!category) return;
 
     try {
       await addDoc(collection(db, "expenses"), {
-        userId, // Сохраняем userId
+        userId,
         category: selectedCategory,
         amount: parseFloat(amount),
         color: category.color,
@@ -52,6 +50,7 @@ const AddExpense: React.FC<Props> = ({ userId, onAddExpense }) => {
       setAmount("");
 
       onAddExpense(selectedCategory, parseFloat(amount), category.color);
+      onClose(); // Закрываем окно после добавления
     } catch (error) {
       console.error("Error adding expense: ", error);
     }

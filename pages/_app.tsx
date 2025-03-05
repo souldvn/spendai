@@ -8,7 +8,14 @@ const App = ({ Component, pageProps }: AppProps) => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("userId");
-    setUserId(id);
+
+    if (id) {
+      localStorage.setItem("userId", id);
+      setUserId(id);
+    } else {
+      const storedId = localStorage.getItem("userId");
+      if (storedId) setUserId(storedId);
+    }
   }, []);
 
   return <Component {...pageProps} userId={userId} />;
