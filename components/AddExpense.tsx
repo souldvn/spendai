@@ -25,18 +25,20 @@ type Props = {
 };
 
 const AddExpense: React.FC<Props> = ({ userId, onAddExpense, onClose }) => {
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
 
   const handleSaveExpense = async () => {
-    if (!amount || !selectedCategory || !userId) {
-      alert("User ID is missing. Please reload the page.");
-      return;
-    }
-
+    if (!amount || !selectedCategory || !userId || isSubmitting) return;
+    setIsSubmitting(true); // Блокируем повторный клик
+  
     const category = categories.find((c) => c.name === selectedCategory);
     if (!category) return;
-
+  
     try {
       await addDoc(collection(db, "expenses"), {
         userId,
@@ -45,14 +47,14 @@ const AddExpense: React.FC<Props> = ({ userId, onAddExpense, onClose }) => {
         color: category.color,
         timestamp: new Date(),
       });
-
+  
       setSelectedCategory(null);
       setAmount("");
-
       onAddExpense(selectedCategory, parseFloat(amount), category.color);
-      onClose(); // Закрываем окно после добавления
     } catch (error) {
-      console.error("Error adding expense: ", error);
+      console.error("Ошибка при добавлении расхода: ", error);
+    } finally {
+      setIsSubmitting(false); // Разблокируем кнопку
     }
   };
 

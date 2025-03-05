@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
+import s from "@/styles/pages/history.module.sass";
 import { db } from "../firebaseConfig";
+
 import { collection, query, where, getDocs } from "firebase/firestore";
-import s from "../styles/pages/history.module.sass";
+
 import Back from "../components/icons/back.svg";
 
 type Expense = {
