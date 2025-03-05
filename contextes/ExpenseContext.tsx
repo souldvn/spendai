@@ -1,10 +1,9 @@
-// context/ExpensesContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { db } from "../firebaseConfig";
 import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
 
 type Expense = {
-  id?: string;
+  id: string;
   name: string;
   value: number;
   color: string;
@@ -14,16 +13,19 @@ type ExpensesContextType = {
   expenses: Expense[];
   addExpense: (userId: string, name: string, value: number, color: string) => Promise<void>;
   fetchExpenses: (userId: string) => Promise<void>;
+  loading: boolean;
 };
 
 const ExpensesContext = createContext<ExpensesContextType | undefined>(undefined);
 
 export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: string | null }> = ({ children, userId }) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   // Функция для загрузки расходов из Firestore
   const fetchExpenses = async (userId: string) => {
     if (!userId) return;
+    setLoading(true);
 
     const q = query(collection(db, "expenses"), where("userId", "==", userId));
     const querySnapshot = await getDocs(q);
@@ -39,13 +41,14 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
     });
 
     setExpenses(fetchedExpenses);
+    setLoading(false);
   };
 
   // Функция для добавления нового расхода
   const addExpense = async (userId: string, name: string, value: number, color: string) => {
     if (!userId) return;
 
-    const docRef = await addDoc(collection(db, "expenses"), {
+    await addDoc(collection(db, "expenses"), {
       userId,
       category: name,
       amount: value,
@@ -53,7 +56,7 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
       timestamp: new Date(),
     });
 
-    setExpenses((prev) => [...prev, { id: docRef.id, name, value, color }]);
+    await fetchExpenses(userId); // Обновляем расходы после добавления
   };
 
   useEffect(() => {
@@ -61,7 +64,7 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
   }, [userId]);
 
   return (
-    <ExpensesContext.Provider value={{ expenses, addExpense, fetchExpenses }}>
+    <ExpensesContext.Provider value={{ expenses, addExpense, fetchExpenses, loading }}>
       {children}
     </ExpensesContext.Provider>
   );

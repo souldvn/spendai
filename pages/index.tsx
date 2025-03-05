@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useExpenses } from "../contextes/ExpenseContext";
@@ -18,9 +18,16 @@ const Piejs = dynamic(() => import("../components/Pie/Pie"), { ssr: false });
 const MainScreen: React.FC = () => {
   const router = useRouter();
   const userId = router.query.userId as string | null;
-  const { expenses } = useExpenses();
+  const { expenses, fetchExpenses } = useExpenses();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Загружаем данные при монтировании или когда userId меняется
+  useEffect(() => {
+    if (userId && expenses.length === 0) {
+      fetchExpenses(userId);
+    }
+  }, [userId, fetchExpenses]);
 
   return (
     <div className={s.container}>

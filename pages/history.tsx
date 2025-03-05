@@ -1,50 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import s from "../styles/pages/history.module.sass";
-import { db } from "../firebaseConfig";
-
-import { collection, query, where, getDocs } from "firebase/firestore";
-
+import { useExpenses } from "../contextes/ExpenseContext";
 import Back from "../components/icons/back.svg";
 
-type Expense = {
-  id: string;
-  name: string;
-  value: number;
-  color: string;
-};
-
 const History: React.FC<{ userId: string | null }> = ({ userId }) => {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { expenses, fetchExpenses, loading } = useExpenses();
 
   useEffect(() => {
-    if (!userId) {
-      setExpenses([]);
-      setLoading(false);
-      return;
-    }
-
-    const fetchExpenses = async () => {
-      setLoading(true);
-      const q = query(collection(db, "expenses"), where("userId", "==", userId));
-      const querySnapshot = await getDocs(q);
-      const fetchedExpenses: Expense[] = [];
-
-      querySnapshot.forEach((doc) => {
-        fetchedExpenses.push({
-          id: doc.id,
-          name: doc.data().category,
-          value: doc.data().amount,
-          color: doc.data().color,
-        });
-      });
-
-      setExpenses(fetchedExpenses);
-      setLoading(false);
-    };
-
-    fetchExpenses();
-  }, [userId]);
+    if (userId) fetchExpenses(userId);
+  }, [userId, fetchExpenses]);
 
   return (
     <div className={s.container}>
