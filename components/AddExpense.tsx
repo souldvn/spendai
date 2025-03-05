@@ -17,6 +17,12 @@ const categories = [
   { name: "Other", color: "#000000" },
 ];
 
+type Props = {
+  userId: string | null;
+  onAddExpense: (name: string, value: number, color: string) => void;
+  onClose: () => void;
+};
+
 const AddExpense: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { addExpense } = useExpenses();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -34,7 +40,40 @@ const AddExpense: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   return (
     <div className={s.container}>
-      {/* Остальной код */}
+      <div className={s.window}>
+        {!selectedCategory ? (
+          <>
+            <p className={s.title}>Add Expense</p>
+            <div className={s.table}>
+              {categories.map((category) => (
+                <button
+                  key={category.name}
+                  className={s.point}
+                  onClick={() => setSelectedCategory(category.name)}
+                >
+                  <div style={{ backgroundColor: category.color }} className={s.round}></div>
+                  <p>{category.name}</p>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className={s.amountInput}>
+            <p className={s.title}>Enter Amount for {selectedCategory}</p>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter amount..."
+              className={s.input}
+            />
+            <div className={s.buttons}>
+              <button className={s.cancel} onClick={() => setSelectedCategory(null)}>Back</button>
+              <button className={s.submit} onClick={handleSaveExpense}>Save</button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
