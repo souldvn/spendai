@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { db } from "../firebaseConfig";
 import { addDoc, collection } from "firebase/firestore";
 import s from "../styles/components/AddExpense.module.sass";
+import { useRouter } from "next/router";
 
-// Категории расходов
+
 const categories = [
   { name: "Transport", color: "#FFC107" },
   { name: "Food", color: "#FF5722" },
@@ -20,34 +21,37 @@ const categories = [
 ];
 
 type Props = {
+  userId: string | null; // Добавляем userId
   onAddExpense: (name: string, value: number, color: string) => void;
-  onClose: () => void; // Добавил сюда onClose
+  onClose: () => void; // Добавляем onClose
+
 };
 
-const AddExpense: React.FC<Props> = ({ onAddExpense, onClose }) => {
+const AddExpense: React.FC<Props> = ({ userId, onAddExpense }) => {
+
+  
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
 
   const handleSaveExpense = async () => {
-    if (!amount || !selectedCategory) return;
+    if (!amount || !selectedCategory || !userId) return; // Проверяем, есть ли userId
 
     const category = categories.find((c) => c.name === selectedCategory);
     if (!category) return;
 
     try {
       await addDoc(collection(db, "expenses"), {
+        userId, // Сохраняем userId
         category: selectedCategory,
         amount: parseFloat(amount),
         color: category.color,
         timestamp: new Date(),
       });
 
-      // Сбрасываем поля
       setSelectedCategory(null);
       setAmount("");
 
-      // Закрываем модалку после успешного сохранения
-      onClose();
+      onAddExpense(selectedCategory, parseFloat(amount), category.color);
     } catch (error) {
       console.error("Error adding expense: ", error);
     }
@@ -83,12 +87,8 @@ const AddExpense: React.FC<Props> = ({ onAddExpense, onClose }) => {
               className={s.input}
             />
             <div className={s.buttons}>
-              <button className={s.cancel} onClick={() => setSelectedCategory(null)}>
-                Back
-              </button>
-              <button className={s.submit} onClick={handleSaveExpense}>
-                Save
-              </button>
+              <button className={s.cancel} onClick={() => setSelectedCategory(null)}>Back</button>
+              <button className={s.submit} onClick={handleSaveExpense}>Save</button>
             </div>
           </div>
         )}

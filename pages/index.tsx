@@ -23,6 +23,9 @@ type Expense = {
 };
 
 const MainScreen: React.FC = () => {
+  const route = useRouter();
+  const userId = route.query.userId as string | null;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
@@ -56,7 +59,7 @@ const MainScreen: React.FC = () => {
         <Moonlight />
       </div>
       <div className={s.mainContent}>
-        <ExpenseChart/>
+        <ExpenseChart userId={userId}/>
         <div className={s.buttons}>
           <button className={`${s.button} ${s.minus}`} onClick={() => setIsModalOpen(true)}>
             <Plus />
@@ -79,7 +82,7 @@ const MainScreen: React.FC = () => {
       {isModalOpen && (
         <div className={s.modalOverlay} onClick={() => setIsModalOpen(false)}>
           <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
-          <AddExpense onAddExpense={handleAddExpense} onClose={() => setIsModalOpen(false)} />
+          <AddExpense userId={userId} onAddExpense={handleAddExpense} onClose={() => setIsModalOpen(false)} />
 
           </div>
         </div>

@@ -1,39 +1,61 @@
 import React, { useEffect, useState } from "react";
-import { db } from "@/firebaseConfig"; // Убедись, что путь правильный
-import { collection, onSnapshot } from "firebase/firestore";
-import Piejs from "./Pie";
+import { db } from "../../firebaseConfig";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import s from "../styles/pages/history.module.sass";
+import Back from "../components/icons/back.svg";
 
-type ExpenseData = {
+type Expense = {
   name: string;
   value: number;
   color: string;
 };
 
-const ExpenseChart: React.FC = () => {
-  const [data, setData] = useState<ExpenseData[]>([]);
+const History: React.FC<{ userId: string | null }> = ({ userId }) => {
+  const [expenses, setExpenses] = useState<Expense[]>([]);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "expenses"), (snapshot) => {
-      const expenses: ExpenseData[] = [];
+    if (!userId) return; // Проверяем, есть ли userId
 
-      snapshot.forEach((doc) => {
-        const { category, amount, color } = doc.data();
-        const existingCategory = expenses.find((exp) => exp.name === category);
+    const fetchExpenses = async () => {
+      const q = query(collection(db, "expenses"), where("userId", "==", userId));
+      const querySnapshot = await getDocs(q);
+      const fetchedExpenses: Expense[] = [];
 
-        if (existingCategory) {
-          existingCategory.value += amount;
-        } else {
-          expenses.push({ name: category, value: amount, color });
-        }
+      querySnapshot.forEach((doc) => {
+        fetchedExpenses.push({
+          name: doc.data().category,
+          value: doc.data().amount,
+          color: doc.data().color,
+        });
       });
 
-      setData(expenses);
-    });
+      setExpenses(fetchedExpenses);
+    };
 
-    return () => unsubscribe();
-  }, []);
+    fetchExpenses();
+  }, [userId]);
 
-  return <Piejs data={data} />;
+  return (
+    <div className={s.container}>
+      <Back className={s.back} onClick={() => history.back()} />
+      <h2 className={s.title}>Expense History</h2>
+      {expenses.length === 0 ? (
+        <p className={s.empty}>No expenses yet.</p>
+      ) : (
+        <div className={s.list}>
+          {expenses.map((expense, index) => (
+            <div key={index} className={s.item}>
+              <div className={s.colorTag} style={{ backgroundColor: expense.color }} />
+              <div className={s.details}>
+                <p className={s.name}>{expense.name}</p>
+                <p className={s.value}>${expense.value.toFixed(2)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
-export default ExpenseChart;
+export default History;
