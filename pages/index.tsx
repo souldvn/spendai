@@ -26,12 +26,25 @@ const MainScreen: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+
+
   // Загружаем данные при монтировании или когда userId меняется
   useEffect(() => {
     if (userId) {
       fetchExpenses();
     }
-  }, [userId]);
+  
+    // Подписка на изменение маршрута
+    const handleRouteChange = () => {
+      fetchExpenses(); // Загружаем траты при возврате
+    };
+  
+    router.events.on("routeChangeComplete", handleRouteChange);
+  
+    return () => {
+      router.events.off("routeChangeComplete", handleRouteChange);
+    };
+  }, [userId, router]);
 
   console.log("userId в MainScreen:", userId);
   
