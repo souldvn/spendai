@@ -24,15 +24,18 @@ type Expense = {
 type ExpensesContextType = {
   userId: string | null;
   expenses: Expense[];
+  setExpenses: React.Dispatch<React.SetStateAction<Expense[]>>; // <-- добавлено
   addExpense: (name: string, value: number, color: string) => Promise<void>;
   fetchExpenses: () => Promise<void>;
   deleteExpense: (expenseId: string) => Promise<void>;
   updateExpense: (expenseId: string, updatedData: Partial<Expense>) => Promise<void>;
   loading: boolean;
   balance: number;
+  setBalance: React.Dispatch<React.SetStateAction<number>>; // <-- добавлено
   fetchBalance: () => Promise<void>;
   addFunds: (amount: number) => Promise<void>;
 };
+
 
 const ExpensesContext = createContext<ExpensesContextType | undefined>(undefined);
 
@@ -192,21 +195,23 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
 
   return (
     <ExpensesContext.Provider
-      value={{
-        userId: currentUserId,
-        expenses,
-        addExpense,
-        fetchExpenses,
-        deleteExpense,
-        updateExpense,
-        loading,
-        balance,
-        fetchBalance,
-        addFunds,
-      }}
-    >
-      {children}
-    </ExpensesContext.Provider>
+    value={{
+      userId: currentUserId,
+      expenses,
+      setExpenses, // <-- добавлено
+      addExpense,
+      fetchExpenses,
+      deleteExpense,
+      updateExpense,
+      loading,
+      balance,
+      setBalance, // <-- добавлено
+      fetchBalance,
+      addFunds,
+    }}
+  >
+    {children}
+  </ExpensesContext.Provider>
   );
 };
 

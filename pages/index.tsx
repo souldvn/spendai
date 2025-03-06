@@ -16,35 +16,35 @@ const Piejs = dynamic(() => import("../components/Pie/Pie"), { ssr: false });
 
 const MainScreen: React.FC = () => {
   const router = useRouter();
-  const userId = (router.query.userId as string | null) || "test-user";
-  const { expenses, fetchExpenses, balance, fetchBalance, addFunds } = useExpenses();
+  const { expenses, fetchExpenses, balance, fetchBalance, addFunds, setExpenses, setBalance } = useExpenses();
 
+  const [userId, setUserId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [newBalance, setNewBalance] = useState(balance);
 
+  // Ждем загрузки userId из query
+  useEffect(() => {
+    if (router.query.userId) {
+      setUserId(router.query.userId as string);
+    }
+  }, [router.query.userId]);
+
+  // Загружаем данные после установки userId
   useEffect(() => {
     if (userId) {
+      setExpenses([]); // Очищаем список расходов перед загрузкой новых
+      setBalance(0); // Очищаем баланс перед загрузкой нового
       fetchExpenses();
       fetchBalance();
     }
-
-    const handleRouteChange = () => {
-      fetchExpenses();
-      fetchBalance();
-    };
-
-    router.events.on("routeChangeComplete", handleRouteChange);
-    return () => {
-      router.events.off("routeChangeComplete", handleRouteChange);
-    };
-  }, [userId, router]);
+  }, [userId]);
 
   useEffect(() => {
     setNewBalance(balance);
   }, [balance]);
 
-  // Функция обновления баланса
+  // Обновление баланса
   const handleBalanceChange = () => {
     if (newBalance !== balance) {
       addFunds(newBalance);
@@ -107,7 +107,7 @@ const MainScreen: React.FC = () => {
         <div className={s.modalOverlay} onClick={() => setIsModalOpen(false)}>
           <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
             <AddExpense 
-              userId={userId} 
+              userId={userId || ""} 
               onAddExpense={(name, value, color) => console.log(name, value, color)} 
               onClose={() => setIsModalOpen(false)} 
             />
