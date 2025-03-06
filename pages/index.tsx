@@ -12,42 +12,45 @@ import Notifications from "../components/icons/notifications.svg";
 import AddExpense from "@/components/AddExpense";
 import s from "../styles/components/Home.module.sass";
 
-// Отключаем SSR для Piejs
 const Piejs = dynamic(() => import("../components/Pie/Pie"), { ssr: false });
 
 const MainScreen: React.FC = () => {
-
-
   const router = useRouter();
-  // const userId = router.query.userId as string | null;
-  const userId = (router.query.userId as string | null) || "test-user"; // 👈 Добавляем fallback
-
-  const { expenses, fetchExpenses } = useExpenses();
+  const userId = (router.query.userId as string | null) || "test-user";
+  const { expenses, fetchExpenses, balance, fetchBalance, addFunds } = useExpenses();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditingBalance, setIsEditingBalance] = useState(false);
+  const [newBalance, setNewBalance] = useState(balance);
 
-
-
-  // Загружаем данные при монтировании или когда userId меняется
   useEffect(() => {
     if (userId) {
       fetchExpenses();
+      fetchBalance();
     }
-  
-    // Подписка на изменение маршрута
+
     const handleRouteChange = () => {
-      fetchExpenses(); // Загружаем траты при возврате
+      fetchExpenses();
+      fetchBalance();
     };
-  
+
     router.events.on("routeChangeComplete", handleRouteChange);
-  
     return () => {
       router.events.off("routeChangeComplete", handleRouteChange);
     };
   }, [userId, router]);
 
-  console.log("userId в MainScreen:", userId);
-  
+  useEffect(() => {
+    setNewBalance(balance);
+  }, [balance]);
+
+  // Функция обновления баланса
+  const handleBalanceChange = () => {
+    if (newBalance !== balance) {
+      addFunds(newBalance);
+    }
+    setIsEditingBalance(false);
+  };
 
   return (
     <div className={s.container}>
@@ -59,6 +62,24 @@ const MainScreen: React.FC = () => {
         </div>
         <Moonlight />
       </div>
+
+      {/* Блок с балансом */}
+      <div className={s.balanceContainer} onClick={() => setIsEditingBalance(true)}>
+        {isEditingBalance ? (
+          <input
+            type="number"
+            className={s.balanceInput}
+            value={newBalance}
+            onChange={(e) => setNewBalance(Number(e.target.value))}
+            onBlur={handleBalanceChange}
+            onKeyDown={(e) => e.key === "Enter" && handleBalanceChange()}
+            autoFocus
+          />
+        ) : (
+          <p className={s.balanceText}>{newBalance.toLocaleString()}₫</p>
+        )}
+      </div>
+
       <div className={s.mainContent}>
         <Piejs data={expenses} />
         <div className={s.buttons}>
@@ -70,6 +91,7 @@ const MainScreen: React.FC = () => {
           </button>
         </div>
       </div>
+
       <div className={s.bottomPanel}>
         <div className={`${s.bottombutton} ${s.analysis}`}>
           <Analysis />
@@ -80,18 +102,18 @@ const MainScreen: React.FC = () => {
           <p>Notifications</p>
         </div>
       </div>
-      {isModalOpen && (
-  <div className={s.modalOverlay} onClick={() => setIsModalOpen(false)}>
-    <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
-      <AddExpense 
-        userId={userId} 
-        onAddExpense={(name, value, color) => console.log(name, value, color)} // заглушка
-        onClose={() => setIsModalOpen(false)} 
-      />
-    </div>
-  </div>
-)}
 
+      {isModalOpen && (
+        <div className={s.modalOverlay} onClick={() => setIsModalOpen(false)}>
+          <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
+            <AddExpense 
+              userId={userId} 
+              onAddExpense={(name, value, color) => console.log(name, value, color)} 
+              onClose={() => setIsModalOpen(false)} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
