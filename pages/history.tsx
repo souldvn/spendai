@@ -5,12 +5,12 @@ import Back from "../components/icons/back.svg";
 import Modal from "./Modal";
 
 const History: React.FC = () => {
-  
-
-  const { userId, expenses, deleteExpense } = useExpenses();
+  const { userId, expenses, deleteExpense, updateExpense } = useExpenses();
   const [selectedExpense, setSelectedExpense] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-console.log("userId в History:", userId);
+
+  console.log("userId в History:", userId);
+
   // Открываем модалку, записываем текущий расход в selectedExpense
   const openModal = (expense: any) => {
     console.log("Открываем модалку для расхода:", expense);
@@ -27,29 +27,33 @@ console.log("userId в History:", userId);
 
   // Удаление расхода
   const handleDelete = async () => {
-    console.log("handleDelete вызван");
-    
-    if (!selectedExpense) {
-      console.log("Ошибка: selectedExpense отсутствует");
-      return;
-    }
+    if (!selectedExpense) return;
 
-    if (!userId) {
-      console.log("Ошибка: userId отсутствует");
-      return;
-    }
-
-    console.log("Вызываем удаление для:", selectedExpense.id);
-
+    console.log("Удаляем:", selectedExpense.id);
     try {
       await deleteExpense(selectedExpense.id);
-      console.log("Удаление прошло успешно");
     } catch (error) {
       console.error("Ошибка при удалении:", error);
     }
 
     closeModal();
   };
+
+  // Обновление расхода
+  const handleUpdate = async (newValue: number) => {
+    if (!selectedExpense) return;
+  
+    console.log("Обновляем:", selectedExpense.id, "на", newValue);
+    
+    try {
+      await updateExpense(selectedExpense.id, { value: newValue }); // Передаём объект с `value`
+    } catch (error) {
+      console.error("Ошибка при обновлении:", error);
+    }
+  
+    closeModal();
+  };
+  
 
   return (
     <div className={s.container}>
@@ -73,8 +77,13 @@ console.log("userId в History:", userId);
       )}
 
       {isModalOpen && selectedExpense && (
-        <Modal onClose={closeModal} onDelete={handleDelete}>
-          <h3>Удалить расход "{selectedExpense.name}"?</h3>
+        <Modal 
+          onClose={closeModal} 
+          onDelete={handleDelete} 
+          onUpdate={handleUpdate}
+          initialValue={selectedExpense.value}
+        >
+          <h3>Редактировать "{selectedExpense.name}"</h3>
         </Modal>
       )}
     </div>

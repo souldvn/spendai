@@ -93,15 +93,23 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
 
   const updateExpense = async (expenseId: string, updatedData: Partial<Expense>) => {
     if (!currentUserId) return;
-
+  
     try {
       const expenseRef = doc(db, "expenses", expenseId);
-      await updateDoc(expenseRef, updatedData);
+  
+      const firestoreData: Partial<{ category: string; amount: number; color?: string }> = {};
+  
+      if (updatedData.name !== undefined) firestoreData.category = updatedData.name;
+      if (updatedData.value !== undefined) firestoreData.amount = updatedData.value;
+      if (updatedData.color !== undefined) firestoreData.color = updatedData.color;
+  
+      await updateDoc(expenseRef, firestoreData);
       await fetchExpenses();
     } catch (error) {
       console.error("Ошибка при обновлении расхода:", error);
     }
   };
+  
 
   useEffect(() => {
     if (userId) setCurrentUserId(userId);
