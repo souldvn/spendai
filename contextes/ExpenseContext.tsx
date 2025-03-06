@@ -11,6 +11,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  increment,
 } from "firebase/firestore";
 
 type Expense = {
@@ -28,19 +29,12 @@ type ExpensesContextType = {
   deleteExpense: (expenseId: string) => Promise<void>;
   updateExpense: (expenseId: string, updatedData: Partial<Expense>) => Promise<void>;
   loading: boolean;
-  balance: number; // <-- добавляем баланс
-  fetchBalance: () => Promise<void>; // <-- и функцию загрузки баланса
+  balance: number;
+  fetchBalance: () => Promise<void>;
   addFunds: (amount: number) => Promise<void>;
 };
 
-
 const ExpensesContext = createContext<ExpensesContextType | undefined>(undefined);
-
-
-
-
-
-
 
 export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: string | null }> = ({ children, userId }) => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(userId);
@@ -48,18 +42,17 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
   const [loading, setLoading] = useState<boolean>(true);
   const [balance, setBalance] = useState<number>(0);
 
-
+  // Загружаем баланс из Firestore
   const fetchBalance = async () => {
     if (!currentUserId) return;
-  
+
     try {
       const balanceRef = doc(db, "balances", currentUserId);
       const balanceSnap = await getDoc(balanceRef);
-  
+
       if (balanceSnap.exists()) {
         setBalance(balanceSnap.data().amount);
       } else {
-        // Если баланса нет — создаем новый с 0
         await setDoc(balanceRef, { amount: 0 });
         setBalance(0);
       }
@@ -67,8 +60,8 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
       console.error("Ошибка при загрузке баланса:", error);
     }
   };
-  
 
+  // Загружаем расходы
   const fetchExpenses = async () => {
     if (!currentUserId) return;
 
@@ -95,9 +88,10 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
     }
   };
 
+  // Добавление нового расхода
   const addExpense = async (name: string, value: number, color: string) => {
     if (!currentUserId) return;
-  
+
     try {
       await addDoc(collection(db, "expenses"), {
         userId: currentUserId,
@@ -106,68 +100,67 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
         color,
         timestamp: new Date(),
       });
-  
-      // Обновляем баланс
+
+      // Обновляем баланс в Firestore
       const balanceRef = doc(db, "balances", currentUserId);
-      await updateDoc(balanceRef, { amount: balance - value });
-  
+      await updateDoc(balanceRef, { amount: increment(-value) });
+
       await fetchExpenses();
-      await fetchBalance(); // Загружаем обновленный баланс
+      await fetchBalance();
     } catch (error) {
       console.error("Ошибка при добавлении расхода:", error);
     }
   };
-  
 
+  // Удаление расхода
   const deleteExpense = async (expenseId: string) => {
     if (!currentUserId) return;
-  
+
     try {
       const expenseRef = doc(db, "expenses", expenseId);
       const expenseSnap = await getDoc(expenseRef);
-  
+
       if (expenseSnap.exists()) {
         const deletedValue = expenseSnap.data().amount;
-        
-        // Удаляем расход
+
         await deleteDoc(expenseRef);
-  
-        // Возвращаем деньги в баланс
+
+        // Возвращаем удаленный расход обратно в баланс
         const balanceRef = doc(db, "balances", currentUserId);
-        await updateDoc(balanceRef, { amount: balance + deletedValue });
-  
+        await updateDoc(balanceRef, { amount: increment(deletedValue) });
+
         await fetchExpenses();
-        await fetchBalance(); // Обновляем баланс
+        await fetchBalance();
       }
     } catch (error) {
       console.error("Ошибка при удалении расхода:", error);
     }
   };
-  
 
+  // Обновление существующего расхода
   const updateExpense = async (expenseId: string, updatedData: Partial<Expense>) => {
     if (!currentUserId) return;
-  
+
     try {
       const expenseRef = doc(db, "expenses", expenseId);
       const expenseSnap = await getDoc(expenseRef);
-  
+
       if (expenseSnap.exists()) {
         const oldValue = expenseSnap.data().amount;
         const newValue = updatedData.value ?? oldValue;
-        const diff = oldValue - newValue; // Разница
-  
+        const diff = oldValue - newValue;
+
         const firestoreData: Partial<{ category: string; amount: number; color?: string }> = {};
         if (updatedData.name !== undefined) firestoreData.category = updatedData.name;
         if (updatedData.value !== undefined) firestoreData.amount = updatedData.value;
         if (updatedData.color !== undefined) firestoreData.color = updatedData.color;
-  
+
         await updateDoc(expenseRef, firestoreData);
-  
+
         // Корректируем баланс
         const balanceRef = doc(db, "balances", currentUserId);
-        await updateDoc(balanceRef, { amount: balance + diff });
-  
+        await updateDoc(balanceRef, { amount: increment(diff) });
+
         await fetchExpenses();
         await fetchBalance();
       }
@@ -176,6 +169,7 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
     }
   };
 
+  // Добавление денег в баланс
   const addFunds = async (amount: number) => {
     if (!currentUserId) return;
   
@@ -187,20 +181,30 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
       console.error("Ошибка при пополнении баланса:", error);
     }
   };
-  
-  
-  
-  
 
   useEffect(() => {
-    if (userId) setCurrentUserId(userId);
-    if (userId) fetchExpenses();
-    fetchBalance();
+    if (userId) {
+      setCurrentUserId(userId);
+      fetchExpenses();
+      fetchBalance();
+    }
   }, [userId]);
 
   return (
-    <ExpensesContext.Provider value={{ userId: currentUserId, expenses, addExpense, fetchExpenses, deleteExpense, updateExpense, loading, balance, fetchBalance, addFunds }}>
-
+    <ExpensesContext.Provider
+      value={{
+        userId: currentUserId,
+        expenses,
+        addExpense,
+        fetchExpenses,
+        deleteExpense,
+        updateExpense,
+        loading,
+        balance,
+        fetchBalance,
+        addFunds,
+      }}
+    >
       {children}
     </ExpensesContext.Provider>
   );
