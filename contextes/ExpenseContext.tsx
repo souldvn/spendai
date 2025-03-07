@@ -34,6 +34,7 @@ type ExpensesContextType = {
   setBalance: React.Dispatch<React.SetStateAction<number>>; // <-- добавлено
   fetchBalance: () => Promise<void>;
   addFunds: (amount: number) => Promise<void>;
+  updateBalance: (amount: number) => Promise<void>;
 };
 
 
@@ -47,22 +48,30 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
 
   // Загружаем баланс из Firestore
   const fetchBalance = async () => {
-    if (!currentUserId) return;
+    if (!currentUserId) {
+        console.log("Нет userId, fetchBalance не выполняется.");
+        return;
+    }
 
     try {
-      const balanceRef = doc(db, "balances", currentUserId);
-      const balanceSnap = await getDoc(balanceRef);
+        const balanceRef = doc(db, "balances", currentUserId);
+        console.log("Запрашиваем баланс из Firebase...");
 
-      if (balanceSnap.exists()) {
-        setBalance(balanceSnap.data().amount);
-      } else {
-        await setDoc(balanceRef, { amount: 0 });
-        setBalance(0);
-      }
+        const balanceSnap = await getDoc(balanceRef);
+
+        if (balanceSnap.exists()) {
+            console.log("Баланс найден в Firebase:", balanceSnap.data().amount);
+            setBalance(balanceSnap.data().amount);
+        } else {
+            console.log("Баланс не найден, создаём новый...");
+            await setDoc(balanceRef, { amount: 0 });
+            setBalance(0);
+        }
     } catch (error) {
-      console.error("Ошибка при загрузке баланса:", error);
+        console.error("Ошибка при загрузке баланса:", error);
     }
-  };
+};
+
 
   // Загружаем расходы
   const fetchExpenses = async () => {
@@ -172,8 +181,8 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
     }
   };
 
-  // Добавление денег в баланс
-  const addFunds = async (amount: number) => {
+  
+  const updateBalance = async (amount: number) => {
     if (!currentUserId) return;
   
     try {
@@ -184,6 +193,19 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
       console.error("Ошибка при пополнении баланса:", error);
     }
   };
+
+  const addFunds = async (amount: number) => {
+    if (!currentUserId) return;
+  
+    try {
+      const balanceRef = doc(db, "balances", currentUserId);
+      await updateDoc(balanceRef, { amount: increment(amount) }); // <-- Теперь увеличивает баланс, а не заменяет его
+      await fetchBalance();
+    } catch (error) {
+      console.error("Ошибка при пополнении баланса:", error);
+    }
+  };
+  
 
   useEffect(() => {
     if (userId) {
@@ -208,6 +230,7 @@ export const ExpensesProvider: React.FC<{ children: React.ReactNode; userId: str
       setBalance, // <-- добавлено
       fetchBalance,
       addFunds,
+      updateBalance
     }}
   >
     {children}

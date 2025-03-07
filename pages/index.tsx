@@ -6,20 +6,22 @@ import Clocklight from "../components/icons/clocklight.svg";
 import Arrowdown from "../components/icons/langchoose.svg";
 import Moonlight from "../components/icons/moonlight.svg";
 import Plus from "../components/icons/plus.svg";
-import Minis from "../components/icons/minus.svg";
+import Minus from "../components/icons/minus.svg"; // Исправлено название иконки
 import Analysis from "../components/icons/bar-chart-2.svg";
 import Notifications from "../components/icons/notifications.svg";
 import AddExpense from "@/components/AddExpense";
 import s from "../styles/components/Home.module.sass";
+import AddFundsModal from "@/components/AddFundsModal";
 
 const Piejs = dynamic(() => import("../components/Pie/Pie"), { ssr: false });
 
 const MainScreen: React.FC = () => {
   const router = useRouter();
-  const { expenses, fetchExpenses, balance, fetchBalance, addFunds, setExpenses, setBalance } = useExpenses();
+  const { expenses, fetchExpenses, balance, fetchBalance, addFunds, updateBalance } = useExpenses();
 
   const [userId, setUserId] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [newBalance, setNewBalance] = useState(balance);
 
@@ -36,16 +38,15 @@ const MainScreen: React.FC = () => {
     }
   }, [router.query.userId]);
 
-  // Загружаем данные после установки userId
+  // Загружаем данные, когда установлен userId
   useEffect(() => {
     if (userId) {
-      setExpenses([]); // Очищаем список расходов перед загрузкой новых
-      setBalance(0); // Очищаем баланс перед загрузкой нового
       fetchExpenses();
       fetchBalance();
     }
   }, [userId]);
 
+  // Следим за изменением баланса и обновляем локальный стейт
   useEffect(() => {
     setNewBalance(balance);
   }, [balance]);
@@ -53,17 +54,22 @@ const MainScreen: React.FC = () => {
   // Обновление баланса
   const handleBalanceChange = () => {
     if (newBalance !== balance) {
-      addFunds(newBalance);
+      updateBalance(newBalance);
     }
     setIsEditingBalance(false);
   };
 
-  // Функция для переходов с передачей userId
+  // Переходы с передачей userId
   const navigateWithUserId = (path: string) => {
     if (userId) {
       router.push(`${path}?userId=${userId}`);
     }
   };
+
+  useEffect(() => {
+    console.log("MainScreen: balance обновился:", balance);
+}, [balance]);
+
 
   return (
     <div className={s.container}>
@@ -96,11 +102,13 @@ const MainScreen: React.FC = () => {
       <div className={s.mainContent}>
         <Piejs data={expenses} />
         <div className={s.buttons}>
-          <button className={`${s.button} ${s.minus}`} onClick={() => setIsModalOpen(true)}>
+          {/* Кнопка для добавления доходов */}
+          <button className={`${s.button} ${s.plus}`} onClick={() => setIsIncomeModalOpen(true)}>
             <Plus />
           </button>
-          <button className={`${s.button} ${s.plus}`} onClick={() => setIsModalOpen(true)}>
-            <Minis />
+          {/* Кнопка для добавления расходов */}
+          <button className={`${s.button} ${s.minus}`} onClick={() => setIsExpenseModalOpen(true)}>
+            <Minus />
           </button>
         </div>
       </div>
@@ -116,14 +124,25 @@ const MainScreen: React.FC = () => {
         </div>
       </div>
 
-      {isModalOpen && (
-        <div className={s.modalOverlay} onClick={() => setIsModalOpen(false)}>
+      {/* Модальное окно для добавления расхода */}
+      {isExpenseModalOpen && (
+        <div className={s.modalOverlay} onClick={() => setIsExpenseModalOpen(false)}>
           <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
             <AddExpense 
               userId={userId || ""} 
-              onAddExpense={(name, value, color) => console.log(name, value, color)} 
-              onClose={() => setIsModalOpen(false)} 
+              onAddExpense={(name, value, color) => console.log("Добавлен расход:", name, value, color)} 
+              onClose={() => setIsExpenseModalOpen(false)} 
             />
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно для добавления дохода */}
+      {isIncomeModalOpen && (
+        <div className={s.modalOverlay} onClick={() => setIsIncomeModalOpen(false)}>
+          <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
+          <AddFundsModal onClose={() => setIsIncomeModalOpen(false)} />
+
           </div>
         </div>
       )}
