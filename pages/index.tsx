@@ -23,10 +23,16 @@ const MainScreen: React.FC = () => {
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [newBalance, setNewBalance] = useState(balance);
 
-  // Ждем загрузки userId из query
+  // Загружаем userId из query или sessionStorage
   useEffect(() => {
-    if (router.query.userId) {
-      setUserId(router.query.userId as string);
+    const queryUserId = router.query.userId as string;
+    const storedUserId = sessionStorage.getItem("userId");
+
+    if (queryUserId) {
+      setUserId(queryUserId);
+      sessionStorage.setItem("userId", queryUserId);
+    } else if (storedUserId) {
+      setUserId(storedUserId);
     }
   }, [router.query.userId]);
 
@@ -52,10 +58,17 @@ const MainScreen: React.FC = () => {
     setIsEditingBalance(false);
   };
 
+  // Функция для переходов с передачей userId
+  const navigateWithUserId = (path: string) => {
+    if (userId) {
+      router.push(`${path}?userId=${userId}`);
+    }
+  };
+
   return (
     <div className={s.container}>
       <div className={s.toppanel}>
-        <Clocklight className={s.clickable} onClick={() => router.push("/history")} />
+        <Clocklight className={s.clickable} onClick={() => navigateWithUserId("/history")} />
         <div className={s.lang}>
           EN
           <Arrowdown />
@@ -93,11 +106,11 @@ const MainScreen: React.FC = () => {
       </div>
 
       <div className={s.bottomPanel}>
-        <div className={`${s.bottombutton} ${s.analysis}`}>
+        <div className={`${s.bottombutton} ${s.analysis}`} onClick={() => navigateWithUserId("/analysis")}>
           <Analysis />
           <p>Analysis</p>
         </div>
-        <div className={`${s.bottombutton} ${s.noti}`}>
+        <div className={`${s.bottombutton} ${s.noti}`} onClick={() => navigateWithUserId("/notifications")}>
           <Notifications />
           <p>Notifications</p>
         </div>

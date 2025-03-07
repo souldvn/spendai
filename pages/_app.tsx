@@ -9,9 +9,25 @@ function MyApp({ Component, pageProps }: AppProps) {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (router.isReady) {
-      const id = (router.query.userId as string | undefined) || "test-user"; // 👈 Добавляем fallback
-      setUserId(id);
+    if (!router.isReady) return;
+
+    let id = router.query.userId as string | undefined;
+    const storedId = sessionStorage.getItem("userId");
+
+    if (id) {
+      sessionStorage.setItem("userId", id);
+    } else if (storedId) {
+      id = storedId;
+    } else {
+      id = "test-user";
+      sessionStorage.setItem("userId", id);
+    }
+
+    setUserId(id);
+
+    // Если в URL нет userId, добавляем его
+    if (!router.query.userId) {
+      router.replace({ pathname: router.pathname, query: { userId: id } }, undefined, { shallow: true });
     }
   }, [router.isReady, router.query.userId]);
 
