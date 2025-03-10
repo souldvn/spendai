@@ -6,7 +6,7 @@ import Clocklight from "../components/icons/clocklight.svg";
 import Arrowdown from "../components/icons/langchoose.svg";
 import Moonlight from "../components/icons/moonlight.svg";
 import Plus from "../components/icons/plus.svg";
-import Minus from "../components/icons/minus.svg"; // Исправлено название иконки
+import Minus from "../components/icons/minus.svg";
 import Analysis from "../components/icons/bar-chart-2.svg";
 import Notifications from "../components/icons/notifications.svg";
 import AddExpense from "@/components/AddExpense";
@@ -24,6 +24,11 @@ const MainScreen: React.FC = () => {
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
   const [isEditingBalance, setIsEditingBalance] = useState(false);
   const [newBalance, setNewBalance] = useState(balance);
+
+  // Состояния для API анализа
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Загружаем userId из query или sessionStorage
   useEffect(() => {
@@ -66,10 +71,40 @@ const MainScreen: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    console.log("MainScreen: balance обновился:", balance);
-}, [balance]);
+  const handleAnalysisClick = () => {
+    if (userId) {
+      router.push(`/analysis?userId=${userId}`);
+    }
+  };
+  
 
+  // Функция вызова API для анализа
+  // const handleAnalysisClick = async () => {
+  //   setIsLoading(true);
+  //   setError(null);
+
+  //   try {
+  //     const response = await fetch("/api/summarize", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({ text: "Your expense analysis text goes here." }), // Здесь можно динамически передавать данные
+  //     });
+
+  //     const data = await response.json();
+
+  //     if (response.ok) {
+  //       setAnalysisResult(data.summary);
+  //     } else {
+  //       setError(data.error || "Failed to fetch analysis");
+  //     }
+  //   } catch (err) {
+  //     setError("Internal server error");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   return (
     <div className={s.container}>
@@ -102,11 +137,9 @@ const MainScreen: React.FC = () => {
       <div className={s.mainContent}>
         <Piejs data={expenses} />
         <div className={s.buttons}>
-          {/* Кнопка для добавления доходов */}
           <button className={`${s.button} ${s.plus}`} onClick={() => setIsIncomeModalOpen(true)}>
             <Plus />
           </button>
-          {/* Кнопка для добавления расходов */}
           <button className={`${s.button} ${s.minus}`} onClick={() => setIsExpenseModalOpen(true)}>
             <Minus />
           </button>
@@ -114,7 +147,7 @@ const MainScreen: React.FC = () => {
       </div>
 
       <div className={s.bottomPanel}>
-        <div className={`${s.bottombutton} ${s.analysis}`} onClick={() => navigateWithUserId("/analysis")}>
+        <div className={`${s.bottombutton} ${s.analysis}`} onClick={handleAnalysisClick}>
           <Analysis />
           <p>Analysis</p>
         </div>
@@ -128,10 +161,10 @@ const MainScreen: React.FC = () => {
       {isExpenseModalOpen && (
         <div className={s.modalOverlay} onClick={() => setIsExpenseModalOpen(false)}>
           <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
-            <AddExpense 
-              userId={userId || ""} 
-              onAddExpense={(name, value, color) => console.log("Добавлен расход:", name, value, color)} 
-              onClose={() => setIsExpenseModalOpen(false)} 
+            <AddExpense
+              userId={userId || ""}
+              onAddExpense={(name, value, color) => console.log("Добавлен расход:", name, value, color)}
+              onClose={() => setIsExpenseModalOpen(false)}
             />
           </div>
         </div>
@@ -141,9 +174,18 @@ const MainScreen: React.FC = () => {
       {isIncomeModalOpen && (
         <div className={s.modalOverlay} onClick={() => setIsIncomeModalOpen(false)}>
           <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
-          <AddFundsModal onClose={() => setIsIncomeModalOpen(false)} />
-
+            <AddFundsModal onClose={() => setIsIncomeModalOpen(false)} />
           </div>
+        </div>
+      )}
+
+      {/* Отображение результата анализа */}
+      {isLoading && <p>Loading...</p>}
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      {analysisResult && (
+        <div className={s.analysisResult}>
+          <h3>Analysis Result:</h3>
+          <p>{analysisResult}</p>
         </div>
       )}
     </div>

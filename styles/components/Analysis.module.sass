@@ -1,0 +1,81 @@
+.container
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  height: 100vh
+  background-color: #f4f4f9
+  padding: 20px
+
+.h1
+  color: #333
+  font-size: 24px
+  margin-bottom: 20px
+
+.chatContainer
+  width: 100%
+  max-width: 500px
+  height: 400px
+  overflow-y: auto
+  display: flex
+  flex-direction: column
+  gap: 10px
+  background: white
+  border-radius: 10px
+  padding: 20px
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1)
+
+.message
+  padding: 10px
+  border-radius: 8px
+  max-width: 80%
+  word-wrap: break-word
+  line-height: 1.5
+
+.userMessage
+  align-self: flex-end
+  background: #0078ff
+  color: white
+
+.aiMessage
+  align-self: flex-start
+  background: #e0e0e0
+  color: black
+
+.loading
+  text-align: center
+  color: gray
+  font-style: italic
+
+.error
+  text-align: center
+  color: red
+  font-weight: bold
+
+.inputContainer
+  display: flex
+  width: 100%
+  max-width: 500px
+  margin-top: 10px
+
+.input
+  flex: 1
+  padding: 10px
+  border: 1px solid #ccc
+  border-radius: 5px
+  font-size: 16px
+  outline: none
+
+.sendButton
+  margin-left: 10px
+  padding: 10px 15px
+  background: #0078ff
+  color: white
+  border: none
+  border-radius: 5px
+  cursor: pointer
+  font-size: 16px
+
+  &:disabled
+    background: gray
+    cursor: not-allowed
