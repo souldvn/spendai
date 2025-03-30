@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { AddTransaction } from '@/components/AddTransaction';
 import BottomNav from '@/components/BottomNav';
 import ExpenseChart from '@/components/ExpenseChart';
@@ -18,7 +18,7 @@ const barChartData = [
   { name: 'Вс', amount: 45000 },
 ];
 
-export default function Home() {
+function HomeContent() {
   const searchParams = useSearchParams();
   const urlUserId = searchParams.get('userId');
   
@@ -108,103 +108,116 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="max-w-md mx-auto p-4 relative">
-        {/* Header */}
-        <div className="flex space-x-4 mb-6">
-          <button className="px-6 py-2 bg-[#8B5CF6] text-white rounded-full text-sm font-medium">
-            Expenses
-          </button>
-          <button className="px-6 py-2 text-gray-500 rounded-full text-sm font-medium">
-            Income
-          </button>
-        </div>
-
-        {/* Balance Card */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm mb-6">
-          <div className="text-2xl font-semibold mb-6">{totalExpenses.toLocaleString()} ₽</div>
-          {activeChart === 'pie' ? (
-            <ExpenseChart expenses={expensesByCategory} income={0} />
-          ) : (
-            <BarChart data={barChartData} />
-          )}
-          <div className="flex justify-between mt-6">
-            <div className="flex space-x-2">
-              <button className="px-4 py-1 bg-[#8B5CF6] bg-opacity-10 text-[#8B5CF6] rounded-full text-sm">
-                Wk
-              </button>
-              <button className="px-4 py-1 text-gray-400 rounded-full text-sm">
-                Mo
-              </button>
-            </div>
-            <div className="flex space-x-2">
-              <button 
-                onClick={() => setActiveChart('pie')}
-                className={`w-8 h-8 ${activeChart === 'pie' ? 'bg-[#8B5CF6] text-white' : 'bg-[#8B5CF6] bg-opacity-10 text-[#8B5CF6]'} rounded-xl flex items-center justify-center`}
-              >
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path fillRule="evenodd" clipRule="evenodd" d="M10 18.3333C14.6024 18.3333 18.3334 14.6024 18.3334 10C18.3334 5.39763 14.6024 1.66667 10 1.66667C5.39765 1.66667 1.66669 5.39763 1.66669 10C1.66669 14.6024 5.39765 18.3333 10 18.3333ZM10 20C15.5229 20 20 15.5228 20 10C20 4.47715 15.5229 0 10 0C4.47717 0 0 4.47715 0 10C0 15.5228 4.47717 20 10 20Z" fill="currentColor"/>
-                  <path fillRule="evenodd" clipRule="evenodd" d="M10 0C10.9205 0 11.6667 0.746167 11.6667 1.66667V10C11.6667 10.9205 10.9205 11.6667 10 11.6667H1.66669C0.746157 11.6667 0 10.9205 0 10C0 4.47715 4.47717 0 10 0Z" fill="currentColor"/>
-                </svg>
-              </button>
-              <button 
-                onClick={() => setActiveChart('bar')}
-                className={`w-8 h-8 ${activeChart === 'bar' ? 'bg-[#8B5CF6] text-white' : 'bg-[#8B5CF6] bg-opacity-10 text-[#8B5CF6]'} rounded-xl flex items-center justify-center`}
-              >
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path fillRule="evenodd" clipRule="evenodd" d="M13.3333 5C14.2538 5 15 5.74619 15 6.66667V17.5H11.6667V6.66667C11.6667 5.74619 12.4128 5 13.3333 5Z" fill="currentColor"/>
-                  <path fillRule="evenodd" clipRule="evenodd" d="M5.83331 10C6.75379 10 7.49998 10.7462 7.49998 11.6667V17.5H4.16665V11.6667C4.16665 10.7462 4.91284 10 5.83331 10Z" fill="currentColor"/>
-                  <path fillRule="evenodd" clipRule="evenodd" d="M19.1667 2.5C19.6269 2.5 20 2.8731 20 3.33333V17.5C20 17.9602 19.6269 18.3333 19.1667 18.3333H0.833313C0.373089 18.3333 0 17.9602 0 17.5C0 17.0398 0.373089 16.6667 0.833313 16.6667H18.3333V3.33333C18.3333 2.8731 18.7064 2.5 19.1667 2.5Z" fill="currentColor"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Transaction History */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm">
+      <div className="max-w-md mx-auto px-4 py-8">
+        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-semibold">Transaction History</h2>
+            <h1 className="text-2xl font-bold text-gray-900">My Finance</h1>
+            <button
+              onClick={() => setIsAddTransactionOpen(true)}
+              className="w-10 h-10 bg-[#8B5CF6] text-white rounded-full flex items-center justify-center hover:bg-[#7C3AED] transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
           </div>
-          <div className="space-y-4">
-            {transactions.map((transaction) => (
-              <div key={transaction.id} className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{transaction.category}</div>
-                  <div className="text-sm text-gray-500">
-                    {transaction.date.toLocaleDateString()}
-                  </div>
-                </div>
-                <div className="font-medium">{transaction.amount.toLocaleString()} ₽</div>
-              </div>
-            ))}
-            {transactions.length === 0 && (
-              <div className="text-center text-gray-500">No transactions yet</div>
+
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="text-sm text-gray-500">Total Balance</p>
+              <p className="text-2xl font-bold text-gray-900">${totalExpenses.toLocaleString()}</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveChart('pie')}
+                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  activeChart === 'pie'
+                    ? 'bg-[#8B5CF6] text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Pie
+              </button>
+              <button
+                onClick={() => setActiveChart('bar')}
+                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  activeChart === 'bar'
+                    ? 'bg-[#8B5CF6] text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Bar
+              </button>
+            </div>
+          </div>
+
+          <div className="h-64 mb-6">
+            {activeChart === 'pie' ? (
+              <ExpenseChart expenses={expensesByCategory} income={0} />
+            ) : (
+              <BarChart data={barChartData} />
             )}
           </div>
-        </div>
 
-        {/* Add Transaction Button */}
-        <div className="max-w-md mx-auto fixed left-0 right-0 bottom-24 px-4 z-50 pointer-events-none">
-          <div className="relative flex justify-end pointer-events-auto">
-            <button 
-              onClick={() => setIsAddTransactionOpen(true)}
-              className="w-14 h-14 bg-[#8B5CF6] rounded-2xl flex items-center justify-center text-white text-2xl font-medium shadow-lg"
-            >
-              +
-            </button>
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Recent Transactions</h2>
+            {transactions.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">No transactions yet</p>
+            ) : (
+              transactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: transaction.color }}
+                    >
+                      <span className="text-white font-medium">
+                        {transaction.category.charAt(0)}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{transaction.category}</p>
+                      <p className="text-sm text-gray-500">
+                        {transaction.date.toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="font-semibold text-gray-900">
+                    ${transaction.amount.toLocaleString()}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
 
-      {/* Bottom Navigation */}
       <BottomNav />
 
-      {/* Add Transaction Modal */}
-      <AddTransaction
-        isOpen={isAddTransactionOpen}
-        onClose={() => setIsAddTransactionOpen(false)}
-        onAddTransaction={handleAddTransaction}
-      />
+      {isAddTransactionOpen && (
+        <AddTransaction
+          isOpen={isAddTransactionOpen}
+          onClose={() => setIsAddTransactionOpen(false)}
+          onAddTransaction={handleAddTransaction}
+        />
+      )}
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
