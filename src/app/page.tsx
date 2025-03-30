@@ -1,18 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AddTransaction } from '@/components/AddTransaction';
 import BottomNav from '@/components/BottomNav';
 import ExpenseChart from '@/components/ExpenseChart';
 import BarChart from '@/components/BarChart';
-
-interface Transaction {
-  id: string;
-  category: string;
-  amount: number;
-  date: Date;
-  color: string;
-}
+import { Transaction, addTransaction as addTransactionToFirebase, getUserTransactions } from '@/firebaseConfig';
+import { useSearchParams } from 'next/navigation';
 
 const barChartData = [
   { name: 'Пн', amount: 45000 },
@@ -25,19 +19,49 @@ const barChartData = [
 ];
 
 export default function Home() {
+  const searchParams = useSearchParams();
+  const userId = searchParams.get('userId');
+
   const [activeChart, setActiveChart] = useState<'pie' | 'bar'>('pie');
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleAddTransaction = (category: string, amount: number, color: string) => {
-    const newTransaction: Transaction = {
-      id: Math.random().toString(36).substr(2, 9),
+  useEffect(() => {
+    const loadTransactions = async () => {
+      if (!userId) return;
+      
+      try {
+        setIsLoading(true);
+        const userTransactions = await getUserTransactions(userId);
+        setTransactions(userTransactions);
+      } catch (error) {
+        console.error('Error loading transactions:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTransactions();
+  }, [userId]);
+
+  const handleAddTransaction = async (category: string, amount: number, color: string) => {
+    if (!userId) return;
+
+    const newTransaction: Omit<Transaction, 'id'> = {
+      userId,
       category,
       amount,
+      color,
       date: new Date(),
-      color
     };
-    setTransactions([newTransaction, ...transactions]);
+
+    try {
+      const addedTransaction = await addTransactionToFirebase(newTransaction);
+      setTransactions(prev => [addedTransaction, ...prev]);
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+    }
   };
 
   // Group transactions by category and sum amounts
@@ -57,6 +81,26 @@ export default function Home() {
 
   const totalExpenses = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
 
+  if (!userId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-xl font-semibold text-gray-800">Please open this app from Telegram</h1>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-md mx-auto p-4 relative">
@@ -74,10 +118,7 @@ export default function Home() {
         <div className="bg-white rounded-3xl p-6 shadow-sm mb-6">
           <div className="text-2xl font-semibold mb-6">{totalExpenses.toLocaleString()} ₽</div>
           {activeChart === 'pie' ? (
-            <ExpenseChart 
-              expenses={expensesByCategory} 
-              income={0}
-            />
+            <ExpenseChart expenses={expensesByCategory} income={0} />
           ) : (
             <BarChart data={barChartData} />
           )}
@@ -131,6 +172,9 @@ export default function Home() {
                 <div className="font-medium">{transaction.amount.toLocaleString()} ₽</div>
               </div>
             ))}
+            {transactions.length === 0 && (
+              <div className="text-center text-gray-500">No transactions yet</div>
+            )}
           </div>
         </div>
 
