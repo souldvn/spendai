@@ -2,10 +2,12 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { AddTransaction } from '@/components/AddTransaction';
+import { EditTransaction } from '@/components/EditTransaction';
 import BottomNav from '@/components/BottomNav';
 import ExpenseChart from '@/components/ExpenseChart';
 import BarChart from '@/components/BarChart';
-import { Transaction, addTransaction as addTransactionToFirebase, getUserTransactions } from '@/firebaseConfig';
+import TransactionHistory from '@/components/TransactionHistory';
+import { Transaction, addTransaction as addTransactionToFirebase, getUserTransactions, deleteTransaction, updateTransaction } from '@/firebaseConfig';
 import { useSearchParams } from 'next/navigation';
 
 const barChartData = [
@@ -24,6 +26,8 @@ function HomeContent() {
   
   const [activeChart, setActiveChart] = useState<'pie' | 'bar'>('pie');
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
+  const [isEditTransactionOpen, setIsEditTransactionOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -74,6 +78,27 @@ function HomeContent() {
       }
     } catch (error) {
       console.error('Error adding transaction:', error);
+    }
+  };
+
+  const handleUpdateTransaction = async (transactionId: string, newAmount: number) => {
+    try {
+      await updateTransaction(transactionId, newAmount);
+      const updatedTransactions = transactions.map(t => 
+        t.id === transactionId ? { ...t, amount: newAmount } : t
+      );
+      setTransactions(updatedTransactions);
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+    }
+  };
+
+  const handleDeleteTransaction = async (transactionId: string) => {
+    try {
+      await deleteTransaction(transactionId);
+      setTransactions(transactions.filter(t => t.id !== transactionId));
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
     }
   };
 
@@ -175,7 +200,11 @@ function HomeContent() {
               transactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl"
+                  onClick={() => {
+                    setSelectedTransaction(transaction);
+                    setIsEditTransactionOpen(true);
+                  }}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -201,17 +230,28 @@ function HomeContent() {
             )}
           </div>
         </div>
-      </div>
 
-      <BottomNav />
+        <BottomNav />
 
-      {isAddTransactionOpen && (
-        <AddTransaction
-          isOpen={isAddTransactionOpen}
-          onClose={() => setIsAddTransactionOpen(false)}
-          onAddTransaction={handleAddTransaction}
+        {isAddTransactionOpen && (
+          <AddTransaction
+            isOpen={isAddTransactionOpen}
+            onClose={() => setIsAddTransactionOpen(false)}
+            onAddTransaction={handleAddTransaction}
+          />
+        )}
+
+        <EditTransaction
+          isOpen={isEditTransactionOpen}
+          onClose={() => {
+            setIsEditTransactionOpen(false);
+            setSelectedTransaction(null);
+          }}
+          transaction={selectedTransaction}
+          onUpdate={handleUpdateTransaction}
+          onDelete={handleDeleteTransaction}
         />
-      )}
+      </div>
     </div>
   );
 }

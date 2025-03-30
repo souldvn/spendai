@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, query, where, getDocs, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -61,6 +61,30 @@ export const getUserTransactions = async (userId: string): Promise<Transaction[]
     })) as Transaction[];
   } catch (error) {
     console.error('Error getting transactions:', error);
+    throw error;
+  }
+};
+
+export const deleteTransaction = async (transactionId: string): Promise<void> => {
+  try {
+    const transactionRef = doc(db, "transactions", transactionId);
+    await deleteDoc(transactionRef);
+    console.log("Transaction deleted successfully");
+  } catch (error) {
+    console.error("Error deleting transaction:", error);
+    throw error;
+  }
+};
+
+export const updateTransaction = async (transactionId: string, newAmount: number): Promise<void> => {
+  try {
+    const transactionRef = doc(db, "transactions", transactionId);
+    await updateDoc(transactionRef, {
+      amount: newAmount
+    });
+    console.log("Transaction updated successfully");
+  } catch (error) {
+    console.error("Error updating transaction:", error);
     throw error;
   }
 };
