@@ -20,30 +20,35 @@ const barChartData = [
 
 export default function Home() {
   const searchParams = useSearchParams();
-  const userId = searchParams.get('userId');
-
+  const urlUserId = searchParams.get('userId');
+  
   const [activeChart, setActiveChart] = useState<'pie' | 'bar'>('pie');
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadTransactions = async () => {
-      if (!userId) return;
-      
+    const initializeApp = async () => {
       try {
-        setIsLoading(true);
-        const userTransactions = await getUserTransactions(userId);
-        setTransactions(userTransactions);
+        // Determine if we're on localhost and set the appropriate userId
+        const isLocalhost = window.location.hostname === 'localhost';
+        const newUserId = isLocalhost ? 'test-user-123' : urlUserId;
+        setUserId(newUserId);
+
+        if (newUserId) {
+          const userTransactions = await getUserTransactions(newUserId);
+          setTransactions(userTransactions);
+        }
       } catch (error) {
-        console.error('Error loading transactions:', error);
+        console.error('Error initializing app:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadTransactions();
-  }, [userId]);
+    initializeApp();
+  }, [urlUserId]);
 
   const handleAddTransaction = async (category: string, amount: number, color: string) => {
     if (!userId) return;
@@ -81,21 +86,21 @@ export default function Home() {
 
   const totalExpenses = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
 
-  if (!userId) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-xl font-semibold text-gray-800">Please open this app from Telegram</h1>
-        </div>
-      </div>
-    );
-  }
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-xl font-semibold text-gray-800">Please open this app from Telegram</h1>
         </div>
       </div>
     );
