@@ -1,7 +1,7 @@
 export default function TransactionsPage() {
   return (
     <div className="bg-white shadow rounded-lg p-6">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Transactions</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">Transactionss</h1>
       <div className="mb-6">
         <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
           Add New Transaction
