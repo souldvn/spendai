@@ -29,11 +29,16 @@ export const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
       ...transaction,
       date: transaction.date.toISOString(),
     });
-    return {
+    
+    // Convert the ISO string back to Date object
+    const savedTransaction = {
       ...transaction,
       id: docRef.id,
-      date: transaction.date,
+      date: new Date(transaction.date.toISOString()),
     };
+    
+    console.log('Transaction saved to Firebase:', savedTransaction);
+    return savedTransaction;
   } catch (error) {
     console.error('Error adding transaction:', error);
     throw error;

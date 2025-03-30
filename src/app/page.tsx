@@ -62,8 +62,16 @@ function HomeContent() {
     };
 
     try {
+      console.log('Adding transaction:', newTransaction);
       const addedTransaction = await addTransactionToFirebase(newTransaction);
-      setTransactions(prev => [addedTransaction, ...prev]);
+      console.log('Transaction added:', addedTransaction);
+      
+      if (addedTransaction) {
+        setTransactions(prev => [addedTransaction, ...prev]);
+        setIsAddTransactionOpen(false);
+      } else {
+        console.error('Failed to add transaction: No response from Firebase');
+      }
     } catch (error) {
       console.error('Error adding transaction:', error);
     }
