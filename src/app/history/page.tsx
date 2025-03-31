@@ -29,7 +29,17 @@ function HistoryContent() {
   useEffect(() => {
     const initializeTransactions = async () => {
       const isLocalhost = window.location.hostname === 'localhost';
-      const userId = isLocalhost ? 'test-user-123' : urlUserId;
+      let userId = isLocalhost ? 'test-user-123' : urlUserId;
+      
+      // Если userId нет в URL, пробуем получить из localStorage
+      if (!userId) {
+        userId = localStorage.getItem('userId');
+      }
+      
+      // Если userId есть в URL, сохраняем его в localStorage
+      if (urlUserId) {
+        localStorage.setItem('userId', urlUserId);
+      }
       
       if (userId) {
         const userTransactions = await getUserTransactions(userId);
