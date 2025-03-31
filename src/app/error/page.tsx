@@ -2,8 +2,9 @@
 
 import { useSearchParams } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
+import { Suspense } from 'react';
 
-export default function ErrorPage() {
+function ErrorContent() {
   const searchParams = useSearchParams();
   const message = searchParams.get('message') || 'An error occurred';
 
@@ -32,5 +33,19 @@ export default function ErrorPage() {
       </div>
       <BottomNav />
     </div>
+  );
+}
+
+export default function ErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    }>
+      <ErrorContent />
+    </Suspense>
   );
 } 

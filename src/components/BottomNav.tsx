@@ -2,8 +2,9 @@
 
 import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { Suspense } from 'react';
 
-export default function BottomNav() {
+function BottomNavContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const userId = searchParams.get('userId');
@@ -102,5 +103,13 @@ export default function BottomNav() {
         </div>
       </nav>
     </div>
+  );
+}
+
+export default function BottomNav() {
+  return (
+    <Suspense fallback={null}>
+      <BottomNavContent />
+    </Suspense>
   );
 } 
