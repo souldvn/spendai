@@ -2,12 +2,17 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { AddTransaction } from '@/components/AddTransaction';
-import { EditTransaction } from '@/components/EditTransaction';
+import { EditTransactionModal } from '@/components/EditTransactionModal';
 import BottomNav from '@/components/BottomNav';
 import ExpenseChart from '@/components/ExpenseChart';
 import BarChart from '@/components/BarChart';
-import TransactionHistory from '@/components/TransactionHistory';
-import { Transaction, addTransaction as addTransactionToFirebase, getUserTransactions, deleteTransaction, updateTransaction } from '@/firebaseConfig';
+import { 
+  Transaction, 
+  addTransaction as addTransactionToFirebase, 
+  getUserTransactions,
+  updateTransaction,
+  deleteTransaction
+} from '@/firebaseConfig';
 import { useSearchParams } from 'next/navigation';
 
 const barChartData = [
@@ -26,11 +31,10 @@ function HomeContent() {
   
   const [activeChart, setActiveChart] = useState<'pie' | 'bar'>('pie');
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
-  const [isEditTransactionOpen, setIsEditTransactionOpen] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -81,13 +85,16 @@ function HomeContent() {
     }
   };
 
-  const handleUpdateTransaction = async (transactionId: string, newAmount: number) => {
+  const handleEditTransaction = async (transactionId: string, newAmount: number) => {
     try {
       await updateTransaction(transactionId, newAmount);
-      const updatedTransactions = transactions.map(t => 
-        t.id === transactionId ? { ...t, amount: newAmount } : t
+      setTransactions(prev => 
+        prev.map(t => 
+          t.id === transactionId 
+            ? { ...t, amount: newAmount }
+            : t
+        )
       );
-      setTransactions(updatedTransactions);
     } catch (error) {
       console.error('Error updating transaction:', error);
     }
@@ -96,26 +103,28 @@ function HomeContent() {
   const handleDeleteTransaction = async (transactionId: string) => {
     try {
       await deleteTransaction(transactionId);
-      setTransactions(transactions.filter(t => t.id !== transactionId));
+      setTransactions(prev => prev.filter(t => t.id !== transactionId));
     } catch (error) {
       console.error('Error deleting transaction:', error);
     }
   };
 
   // Group transactions by category and sum amounts
-  const expensesByCategory = transactions.reduce((acc, transaction) => {
-    const existing = acc.find(e => e.category === transaction.category);
-    if (existing) {
-      existing.amount += transaction.amount;
-    } else {
-      acc.push({
-        category: transaction.category,
-        amount: transaction.amount,
-        color: transaction.color
-      });
-    }
-    return acc;
-  }, [] as { category: string; amount: number; color: string }[]);
+  const expensesByCategory = transactions
+    .filter(transaction => transaction.amount < 0) // Only include expenses
+    .reduce((acc, transaction) => {
+      const existing = acc.find(e => e.category === transaction.category);
+      if (existing) {
+        existing.amount += Math.abs(transaction.amount); // Use absolute value for chart
+      } else {
+        acc.push({
+          category: transaction.category,
+          amount: Math.abs(transaction.amount), // Use absolute value for chart
+          color: transaction.color
+        });
+      }
+      return acc;
+    }, [] as { category: string; amount: number; color: string }[]);
 
   const totalExpenses = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
 
@@ -158,7 +167,9 @@ function HomeContent() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <p className="text-sm text-gray-500">Total Balance</p>
-              <p className="text-2xl font-bold text-gray-900">${totalExpenses.toLocaleString()}</p>
+              <p className={`text-2xl font-bold ${totalExpenses < 0 ? 'text-red-500' : 'text-gray-900'}`}>
+                ${totalExpenses.toLocaleString()}
+              </p>
             </div>
             <div className="flex gap-2">
               <button
@@ -200,10 +211,7 @@ function HomeContent() {
               transactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  onClick={() => {
-                    setSelectedTransaction(transaction);
-                    setIsEditTransactionOpen(true);
-                  }}
+                  onClick={() => setSelectedTransaction(transaction)}
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -222,36 +230,35 @@ function HomeContent() {
                       </p>
                     </div>
                   </div>
-                  <p className="font-semibold text-gray-900">
-                    ${transaction.amount.toLocaleString()}
+                  <p className={`font-semibold ${transaction.amount < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                    {transaction.amount < 0 ? '-' : '+'}${Math.abs(transaction.amount).toLocaleString()}
                   </p>
                 </div>
               ))
             )}
           </div>
         </div>
+      </div>
 
-        <BottomNav />
+      <BottomNav />
 
-        {isAddTransactionOpen && (
-          <AddTransaction
-            isOpen={isAddTransactionOpen}
-            onClose={() => setIsAddTransactionOpen(false)}
-            onAddTransaction={handleAddTransaction}
-          />
-        )}
+      {isAddTransactionOpen && (
+        <AddTransaction
+          isOpen={isAddTransactionOpen}
+          onClose={() => setIsAddTransactionOpen(false)}
+          onAddTransaction={handleAddTransaction}
+        />
+      )}
 
-        <EditTransaction
-          isOpen={isEditTransactionOpen}
-          onClose={() => {
-            setIsEditTransactionOpen(false);
-            setSelectedTransaction(null);
-          }}
+      {selectedTransaction && (
+        <EditTransactionModal
+          isOpen={true}
+          onClose={() => setSelectedTransaction(null)}
           transaction={selectedTransaction}
-          onUpdate={handleUpdateTransaction}
+          onEdit={handleEditTransaction}
           onDelete={handleDeleteTransaction}
         />
-      </div>
+      )}
     </div>
   );
 }

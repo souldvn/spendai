@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, query, where, getDocs, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -65,26 +65,24 @@ export const getUserTransactions = async (userId: string): Promise<Transaction[]
   }
 };
 
-export const deleteTransaction = async (transactionId: string): Promise<void> => {
+export const updateTransaction = async (transactionId: string, newAmount: number) => {
   try {
-    const transactionRef = doc(db, "transactions", transactionId);
-    await deleteDoc(transactionRef);
-    console.log("Transaction deleted successfully");
+    const transactionRef = doc(db, 'transactions', transactionId);
+    await updateDoc(transactionRef, { amount: newAmount });
+    return true;
   } catch (error) {
-    console.error("Error deleting transaction:", error);
+    console.error('Error updating transaction:', error);
     throw error;
   }
 };
 
-export const updateTransaction = async (transactionId: string, newAmount: number): Promise<void> => {
+export const deleteTransaction = async (transactionId: string) => {
   try {
-    const transactionRef = doc(db, "transactions", transactionId);
-    await updateDoc(transactionRef, {
-      amount: newAmount
-    });
-    console.log("Transaction updated successfully");
+    const transactionRef = doc(db, 'transactions', transactionId);
+    await deleteDoc(transactionRef);
+    return true;
   } catch (error) {
-    console.error("Error updating transaction:", error);
+    console.error('Error deleting transaction:', error);
     throw error;
   }
 };
