@@ -1,18 +1,24 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const userId = searchParams.get('userId');
 
   const isActive = (path: string) => pathname === path;
+
+  const getLinkWithUserId = (path: string) => {
+    return userId ? `${path}?userId=${userId}` : path;
+  };
 
   return (
     <div className="fixed bottom-0 left-0 right-0 flex justify-center bg-transparent">
       <nav className="max-w-md w-full bg-white border-t border-gray-200">
         <div className="flex justify-between items-center px-6 py-2">
-          <Link href="/analytics" className="flex flex-col items-center py-2">
+          <Link href={getLinkWithUserId('/analytics')} className="flex flex-col items-center py-2">
             <svg
               className={`w-6 h-6 ${isActive('/analytics') ? 'text-[#8B5CF6]' : 'text-gray-400'}`}
               viewBox="0 0 24 24"
@@ -31,7 +37,7 @@ export default function BottomNav() {
             </span>
           </Link>
 
-          <Link href="/" className="flex flex-col items-center py-2">
+          <Link href={getLinkWithUserId('/')} className="flex flex-col items-center py-2">
             <svg
               className={`w-6 h-6 ${isActive('/') ? 'text-[#8B5CF6]' : 'text-gray-400'}`}
               viewBox="0 0 24 24"
@@ -50,7 +56,7 @@ export default function BottomNav() {
             </span>
           </Link>
 
-          <Link href="/history" className="flex flex-col items-center py-2">
+          <Link href={getLinkWithUserId('/history')} className="flex flex-col items-center py-2">
             <svg
               className={`w-6 h-6 ${isActive('/history') ? 'text-[#8B5CF6]' : 'text-gray-400'}`}
               viewBox="0 0 24 24"
@@ -69,7 +75,7 @@ export default function BottomNav() {
             </span>
           </Link>
 
-          <Link href="/settings" className="flex flex-col items-center py-2">
+          <Link href={getLinkWithUserId('/settings')} className="flex flex-col items-center py-2">
             <svg
               className={`w-6 h-6 ${isActive('/settings') ? 'text-[#8B5CF6]' : 'text-gray-400'}`}
               viewBox="0 0 24 24"

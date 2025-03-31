@@ -13,7 +13,7 @@ import {
   updateTransaction,
   deleteTransaction
 } from '@/firebaseConfig';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const barChartData = [
   { name: 'Пн', amount: 45000 },
@@ -27,6 +27,7 @@ const barChartData = [
 
 function HomeContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const urlUserId = searchParams.get('userId');
   
   const [activeChart, setActiveChart] = useState<'pie' | 'bar'>('pie');
@@ -41,22 +42,38 @@ function HomeContent() {
       try {
         // Determine if we're on localhost and set the appropriate userId
         const isLocalhost = window.location.hostname === 'localhost';
-        const newUserId = isLocalhost ? 'test-user-123' : urlUserId;
-        setUserId(newUserId);
-
-        if (newUserId) {
-          const userTransactions = await getUserTransactions(newUserId);
-          setTransactions(userTransactions);
+        let newUserId = isLocalhost ? 'test-user-123' : urlUserId;
+        
+        // If no userId in URL, try to get from localStorage
+        if (!newUserId) {
+          newUserId = localStorage.getItem('userId');
         }
+        
+        // If still no userId, redirect to error page
+        if (!newUserId) {
+          router.push('/error?message=Please open this app from Telegram');
+          return;
+        }
+        
+        setUserId(newUserId);
+        
+        // Save userId to localStorage if it's not already there
+        if (!localStorage.getItem('userId')) {
+          localStorage.setItem('userId', newUserId);
+        }
+
+        const userTransactions = await getUserTransactions(newUserId);
+        setTransactions(userTransactions);
       } catch (error) {
         console.error('Error initializing app:', error);
+        router.push('/error?message=Failed to load transactions');
       } finally {
         setIsLoading(false);
       }
     };
 
     initializeApp();
-  }, [urlUserId]);
+  }, [urlUserId, router]);
 
   const handleAddTransaction = async (category: string, amount: number, color: string) => {
     if (!userId) return;
