@@ -4,10 +4,7 @@ const nextConfig = {
   swcMinify: true,
   images: {
     domains: ['firebasestorage.googleapis.com'],
-  },
-  experimental: {
-    serverActions: true,
-  },
+  }
 };
 
 export default nextConfig; 

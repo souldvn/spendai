@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { 
   Transaction, 
   getUserTransactions,
@@ -13,7 +13,7 @@ import { EditTransactionModal } from '@/components/EditTransactionModal';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 
-export default function History() {
+function HistoryContent() {
   const searchParams = useSearchParams();
   const urlUserId = searchParams.get('userId');
   
@@ -265,5 +265,13 @@ export default function History() {
         />
       )}
     </div>
+  );
+}
+
+export default function History() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HistoryContent />
+    </Suspense>
   );
 } 
