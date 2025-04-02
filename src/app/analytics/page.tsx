@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react';
 import { getUserTransactions } from '@/firebaseConfig';
 import { Transaction } from '@/types';
 import BottomNav from '@/components/BottomNav';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { useBalance } from '@/context/BalanceContext';
 import { analyzeFinances } from '@/lib/financeAI';
 
 export default function Analytics() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const urlUserId = searchParams.get('userId');
   const { isLightTheme } = useTheme();
   const { balance } = useBalance();
@@ -27,112 +28,114 @@ export default function Analytics() {
 
   useEffect(() => {
     const initializeTransactions = async () => {
-      const isLocalhost = window.location.hostname === 'localhost';
-      const userId = isLocalhost ? 'test-user-123' : urlUserId;
-      
-      if (userId) {
-        try {
-          const userTransactions = await getUserTransactions(userId);
-          setTransactions(userTransactions);
-          
-          // Calculate totals
-          const totalExpenses = userTransactions
-            .filter((t: Transaction) => t.amount < 0)
-            .reduce((sum: number, t: Transaction) => sum + Math.abs(t.amount), 0);
-          
-          const totalIncome = userTransactions
-            .filter((t: Transaction) => t.amount > 0)
-            .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
-
-          // Group expenses by category
-          const expensesByCategory = userTransactions
-            .filter((t: Transaction) => t.amount < 0)
-            .reduce((acc: Record<string, number>, t: Transaction) => {
-              acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount);
-              return acc;
-            }, {} as Record<string, number>);
-
-          // Calculate top categories
-          const categoriesArray = Object.entries(expensesByCategory)
-            .map(([category, amount]) => ({
-              category,
-              amount,
-              percentage: (amount / totalExpenses) * 100
-            }))
-            .sort((a, b) => b.amount - a.amount)
-            .slice(0, 3);
-          
-          setTopCategories(categoriesArray);
-
-          // Calculate financial health
-          const expenseRatio = totalExpenses / totalIncome;
-          let healthScore = 100;
-          let healthStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
-          let healthMessage = '';
-
-          // Calculate balance factor (how much balance covers monthly expenses)
-          const balanceCoverageMonths = totalExpenses > 0 ? balance / totalExpenses : 0;
-          
-          // Determine health based on both expense ratio and balance coverage
-          if (expenseRatio > 1) {
-            // Расходы превышают доходы
-            healthScore = 30;
-            healthStatus = 'critical';
-            healthMessage = 'Ваши расходы превышают доходы. Необходимо срочно оптимизировать бюджет.';
-          } else if (expenseRatio > 0.8) {
-            // Расходы близки к доходам
-            if (balanceCoverageMonths >= 3) {
-              // Есть запас в виде баланса на 3+ месяца
-              healthScore = 75;
-              healthStatus = 'warning';
-              healthMessage = 'Расходы высокие, но есть финансовая подушка. Рекомендуется сократить расходы.';
-            } else {
-              healthScore = 60;
-              healthStatus = 'warning';
-              healthMessage = 'Ваши расходы близки к доходам, а финансовая подушка недостаточна. Рекомендуется оптимизировать расходы.';
-            }
-          } else {
-            // Расходы меньше доходов
-            if (balanceCoverageMonths >= 6) {
-              // Отличный запас
-              healthScore = 100;
-              healthStatus = 'healthy';
-              healthMessage = 'Отличное финансовое состояние! У вас хороший баланс доходов/расходов и надежная финансовая подушка.';
-            } else if (balanceCoverageMonths >= 3) {
-              // Хороший запас
-              healthScore = 90;
-              healthStatus = 'healthy';
-              healthMessage = 'Хорошее финансовое состояние. Продолжайте накапливать финансовую подушку.';
-            } else {
-              // Маленький запас
-              healthScore = 80;
-              healthStatus = 'healthy';
-              healthMessage = 'Хороший баланс доходов и расходов. Рекомендуется увеличить финансовую подушку.';
-            }
-          }
-
-          setFinancialHealth({ score: healthScore, status: healthStatus, message: healthMessage });
-
-          // Get analysis
-          const financialAnalysis = analyzeFinances({
-            totalIncome,
-            totalExpenses,
-            expensesByCategory,
-            currentBalance: balance
-          });
-
-          setAnalysis(financialAnalysis);
-        } catch (error) {
-          console.error('Error analyzing finances:', error);
-          setAnalysis('Произошла ошибка при анализе. Пожалуйста, попробуйте позже.');
-        } finally {
-          setIsLoading(false);
+      try {
+        // Determine if we're on localhost and set the appropriate userId
+        const isLocalhost = window.location.hostname === 'localhost';
+        let newUserId = isLocalhost ? 'test-user-123' : urlUserId;
+        
+        // If no userId in URL, try to get from localStorage
+        if (!newUserId) {
+          newUserId = localStorage.getItem('userId');
         }
+        
+        // If still no userId, redirect to error page
+        if (!newUserId) {
+          router.push('/error?message=Please open this app from Telegram');
+          return;
+        }
+        
+        // Save userId to localStorage if it's not already there
+        if (!localStorage.getItem('userId')) {
+          localStorage.setItem('userId', newUserId);
+        }
+
+        const userTransactions = await getUserTransactions(newUserId);
+        setTransactions(userTransactions);
+        
+        // Calculate totals
+        const totalExpenses = userTransactions
+          .filter((t: Transaction) => t.amount < 0)
+          .reduce((sum: number, t: Transaction) => sum + Math.abs(t.amount), 0);
+        
+        const totalIncome = userTransactions
+          .filter((t: Transaction) => t.amount > 0)
+          .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+
+        // Group expenses by category
+        const expensesByCategory = userTransactions
+          .filter((t: Transaction) => t.amount < 0)
+          .reduce((acc: Record<string, number>, t: Transaction) => {
+            acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount);
+            return acc;
+          }, {} as Record<string, number>);
+
+        // Calculate top categories
+        const categoriesArray = Object.entries(expensesByCategory)
+          .map(([category, amount]) => ({
+            category,
+            amount,
+            percentage: (amount / totalExpenses) * 100
+          }))
+          .sort((a, b) => b.amount - a.amount)
+          .slice(0, 3);
+        
+        setTopCategories(categoriesArray);
+
+        // Calculate financial health
+        const expenseRatio = totalExpenses / totalIncome;
+        let healthScore = 100;
+        let healthStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
+        let healthMessage = '';
+
+        // Calculate balance factor (how much balance covers monthly expenses)
+        const balanceCoverageMonths = totalExpenses > 0 ? balance / totalExpenses : 0;
+
+        if (expenseRatio > 1) {
+          // Расходы превышают доходы
+          healthScore = 60;
+          healthStatus = 'warning';
+          healthMessage = 'Ваши расходы превышают доходы. Рекомендуется сократить расходы.';
+        } else {
+          // Расходы меньше доходов
+          if (balanceCoverageMonths >= 6) {
+            // Отличный запас
+            healthScore = 100;
+            healthStatus = 'healthy';
+            healthMessage = 'Отличное финансовое состояние! У вас хороший баланс доходов/расходов и надежная финансовая подушка.';
+          } else if (balanceCoverageMonths >= 3) {
+            // Хороший запас
+            healthScore = 90;
+            healthStatus = 'healthy';
+            healthMessage = 'Хорошее финансовое состояние. Продолжайте накапливать финансовую подушку.';
+          } else {
+            // Маленький запас
+            healthScore = 80;
+            healthStatus = 'healthy';
+            healthMessage = 'Хороший баланс доходов и расходов. Рекомендуется увеличить финансовую подушку.';
+          }
+        }
+
+        setFinancialHealth({ score: healthScore, status: healthStatus, message: healthMessage });
+
+        // Get analysis
+        const financialAnalysis = analyzeFinances({
+          totalIncome,
+          totalExpenses,
+          expensesByCategory,
+          currentBalance: balance
+        });
+
+        setAnalysis(financialAnalysis);
+      } catch (error) {
+        console.error('Error analyzing finances:', error);
+        setAnalysis('Произошла ошибка при анализе. Пожалуйста, попробуйте позже.');
+      } finally {
+        setIsLoading(false);
       }
     };
 
     initializeTransactions();
-  }, [urlUserId, balance]);
+  }, [urlUserId, balance, router]);
 
   if (isLoading) {
     return (
