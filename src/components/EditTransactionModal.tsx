@@ -1,17 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Transaction } from '@/firebaseConfig';
+import { useState } from 'react';
+import { Transaction } from '@/types';
+import { updateTransaction, deleteTransaction } from '@/firebaseConfig';
+import { useTheme } from '@/context/ThemeContext';
+import { useBalance } from '@/context/BalanceContext';
 
 interface EditTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   transaction: Transaction;
-  onEdit: (transactionId: string, newAmount: number) => void;
+  onEdit: (transaction: Transaction) => void;
   onDelete: (transactionId: string) => void;
 }
 
-export function EditTransactionModal({
+export default function EditTransactionModal({
   isOpen,
   onClose,
   transaction,
@@ -19,85 +22,89 @@ export function EditTransactionModal({
   onDelete,
 }: EditTransactionModalProps) {
   const [amount, setAmount] = useState(Math.abs(transaction.amount).toString());
-
-  const handleSubmit = () => {
-    const newAmount = transaction.amount < 0 
-      ? -Math.abs(parseFloat(amount))
-      : Math.abs(parseFloat(amount));
-    onEdit(transaction.id, newAmount);
-    onClose();
-  };
-
-  const handleDelete = () => {
-    onDelete(transaction.id);
-    onClose();
-  };
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { isLightTheme } = useTheme();
+  const { balance, setBalance } = useBalance();
 
   if (!isOpen) return null;
 
+  const handleSave = async () => {
+    try {
+      const newAmount = transaction.amount < 0 ? -Number(amount) : Number(amount);
+      await updateTransaction(transaction.id, newAmount);
+      onEdit({ ...transaction, amount: newAmount });
+      // Update balance in context
+      const amountDiff = newAmount - transaction.amount;
+      setBalance(balance + amountDiff);
+      onClose();
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      // Call onDelete before closing
+      onDelete(transaction.id);
+      onClose();
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
-      <div className="bg-white w-full max-w-md rounded-t-3xl p-6">
-        <div className="flex items-center mb-6">
-          <button onClick={onClose} className="text-gray-400 mr-4">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          <h2 className="text-xl font-semibold">Edit transaction</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className={`${isLightTheme ? 'bg-white' : 'bg-gray-800'} rounded-2xl p-6 w-full max-w-md relative`}>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        
+        <h2 className={`text-xl font-semibold mb-4 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>Edit Transaction</h2>
+        
+        <div className="mb-4">
+          <label className={`block text-sm font-medium mb-1 ${isLightTheme ? 'text-gray-700' : 'text-gray-300'}`}>
+            Amount
+          </label>
+          <div className="relative">
+            <span className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isLightTheme ? 'text-gray-500' : 'text-gray-400'}`}>
+              $
+            </span>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className={`pl-8 pr-4 py-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                isLightTheme 
+                  ? 'bg-white border text-gray-900' 
+                  : 'bg-gray-700 border-gray-600 text-white'
+              }`}
+              placeholder="0.00"
+            />
+          </div>
         </div>
 
-        <div className="mb-6">
-          <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl mb-6">
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: transaction.color }}
-            >
-              <span className="text-white font-medium">
-                {transaction.category.charAt(0)}
-              </span>
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">{transaction.category}</p>
-              <p className="text-sm text-gray-500">
-                {transaction.date.toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Amount
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B5CF6] focus:border-transparent text-xl font-semibold"
-                placeholder="Enter amount"
-              />
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                {/* {transaction.amount < 0 ? '-' : '+'}$ */}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={handleSubmit}
-              disabled={!amount}
-              className="flex-1 bg-[#8B5CF6] text-white py-3 px-4 rounded-xl font-medium hover:bg-[#7C3AED] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Save Changes
-            </button>
-            <button
-              onClick={handleDelete}
-              className="flex-1 bg-red-500 text-white py-3 px-4 rounded-xl font-medium hover:bg-red-600 transition-colors"
-            >
-              Delete
-            </button>
-          </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleSave}
+            className="flex-1 bg-[#8B5CF6] text-white py-2 rounded-lg hover:bg-[#7C3AED] transition-colors"
+          >
+            Save
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </button>
         </div>
       </div>
     </div>

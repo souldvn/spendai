@@ -1,25 +1,26 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import ClientLayout from '@/components/ClientLayout';
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SmartSpend",
-  description: "Personal finance management application",
+  title: "My Finance App",
+  description: "Track your finances with ease",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="max-w-md mx-auto min-h-screen bg-gray-50">
+        <ClientLayout>
           {children}
-        </div>
+        </ClientLayout>
       </body>
     </html>
   );

@@ -1,28 +1,41 @@
+import { TypewriterText } from './TypewriterText';
+import { useState } from 'react';
+
 interface ChatMessageProps {
   message: string;
-  isAI?: boolean;
+  isAI: boolean;
 }
 
-export function ChatMessage({ message, isAI = false }: ChatMessageProps) {
+export function ChatMessage({ message, isAI }: ChatMessageProps) {
+  const [isTypingComplete, setIsTypingComplete] = useState(false);
+
   return (
-    <div className={`flex ${isAI ? 'justify-start' : 'justify-end'} mb-4`}>
-      {isAI && (
-        <div className="w-8 h-8 rounded-full bg-[#8B5CF6] flex items-center justify-center mr-2">
-          <span className="text-white text-sm">AI</span>
-        </div>
-      )}
-      <div
-        className={`rounded-2xl px-4 py-3 max-w-[80%] ${
-          isAI ? 'bg-gray-100' : 'bg-[#8B5CF6] text-white'
-        }`}
-      >
-        <p className="text-sm whitespace-pre-wrap">{message}</p>
+    <div className={`flex ${isAI ? 'justify-start' : 'justify-end'}`}>
+      <div className={`max-w-[80%] rounded-lg p-4 ${
+        isAI 
+          ? 'bg-gray-100 text-gray-800' 
+          : 'bg-[#8B5CF6] text-white'
+      }`}>
+        {isAI ? (
+          <div className="flex items-start gap-2">
+            <div className="w-6 h-6 rounded-full bg-[#8B5CF6] flex items-center justify-center text-white text-xs">
+              AI
+            </div>
+            <div className="flex-1">
+              <TypewriterText 
+                text={message} 
+                speed={20}
+                onComplete={() => setIsTypingComplete(true)}
+              />
+              {!isTypingComplete && (
+                <div className="inline-block w-2 h-4 bg-gray-400 animate-pulse ml-1" />
+              )}
+            </div>
+          </div>
+        ) : (
+          message
+        )}
       </div>
-      {!isAI && (
-        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center ml-2">
-          <span className="text-white text-sm">U</span>
-        </div>
-      )}
     </div>
   );
 } 

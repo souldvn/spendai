@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useState } from 'react';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Category {
   id: string;
@@ -257,6 +258,7 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [amount, setAmount] = useState('');
   const [isExpense, setIsExpense] = useState(true);
+  const { isLightTheme } = useTheme();
 
   const handleCategorySelect = (category: Category) => {
     setSelectedCategory(category);
@@ -287,7 +289,7 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
   if (step === 'category') {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center">
-        <div className="bg-white w-full max-w-md rounded-t-3xl p-6">
+        <div className={`${isLightTheme ? 'bg-white' : 'bg-gray-800'} w-full max-w-md rounded-t-3xl p-6`}>
           <div className="flex items-center mb-6">
             <button onClick={onClose} className="text-gray-400 mr-4">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -314,23 +316,24 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
               Income
             </button>
           </div>
+          
           <div className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto">
             {categories.map((category) => (
               <button
                 key={category.id}
                 onClick={() => handleCategorySelect(category)}
-                className="w-full bg-gray-50 hover:bg-gray-100 rounded-2xl p-4 flex items-center justify-between"
+                className={`w-full ${isLightTheme ? 'bg-gray-50 hover:bg-gray-100' : 'bg-gray-700 hover:bg-gray-600'} rounded-2xl p-4 flex items-center justify-between`}
               >
                 <div className="flex items-center">
                   <div className={`w-10 h-10 ${category.color} rounded-xl flex items-center justify-center mr-3`}>
                     {category.icon}
                   </div>
-                  <span className="text-gray-900 font-medium">{category.name}</span>
+                  <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'} font-medium`}>{category.name}</span>
                 </div>
                 <div className={`w-6 h-6 rounded-full border-2 ${
                   selectedCategory?.id === category.id 
                   ? `${category.accentColor} bg-[#8B5CF6]` 
-                  : 'border-gray-200'
+                  : isLightTheme ? 'border-gray-200' : 'border-gray-600'
                 }`} />
               </button>
             ))}
@@ -351,7 +354,7 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center">
-      <div className="bg-white w-full max-w-md rounded-t-3xl">
+      <div className={`${isLightTheme ? 'bg-white' : 'bg-gray-800'} w-full max-w-md rounded-t-3xl`}>
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
@@ -371,7 +374,7 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="Enter amount"
-            className="w-full text-4xl font-semibold mb-6 outline-none"
+            className={`w-full text-4xl font-semibold mb-6 outline-none bg-transparent ${isLightTheme ? 'text-gray-900 placeholder-gray-400' : 'text-white placeholder-gray-500'}`}
             autoFocus
           />
           <button

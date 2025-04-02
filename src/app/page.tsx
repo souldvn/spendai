@@ -2,18 +2,16 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { AddTransaction } from '@/components/AddTransaction';
-import { EditTransactionModal } from '@/components/EditTransactionModal';
+import EditTransactionModal from '@/components/EditTransactionModal';
+import { EditBalanceModal } from '@/components/EditBalanceModal';
 import BottomNav from '@/components/BottomNav';
 import ExpenseChart from '@/components/ExpenseChart';
 import BarChart from '@/components/BarChart';
-import { 
-  Transaction, 
-  addTransaction as addTransactionToFirebase, 
-  getUserTransactions,
-  updateTransaction,
-  deleteTransaction
-} from '@/firebaseConfig';
+import { addTransaction as addTransactionToFirebase, getUserTransactions, updateTransaction, deleteTransaction } from '@/firebaseConfig';
+import type { Transaction } from '@/types';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useBalance } from '@/context/BalanceContext';
+import { useTheme } from '@/context/ThemeContext';
 
 const barChartData = [
   { name: 'Пн', amount: 45000 },
@@ -29,9 +27,12 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlUserId = searchParams.get('userId');
+  const { balance, setBalance, isLoading: isBalanceLoading } = useBalance();
+  const { isLightTheme } = useTheme();
   
   const [activeChart, setActiveChart] = useState<'pie' | 'bar'>('pie');
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
+  const [isEditBalanceOpen, setIsEditBalanceOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -78,39 +79,23 @@ function HomeContent() {
   const handleAddTransaction = async (category: string, amount: number, color: string) => {
     if (!userId) return;
 
-    const newTransaction: Omit<Transaction, 'id'> = {
-      userId,
-      category,
-      amount,
-      color,
-      date: new Date(),
-    };
-
     try {
-      console.log('Adding transaction:', newTransaction);
-      const addedTransaction = await addTransactionToFirebase(newTransaction);
-      console.log('Transaction added:', addedTransaction);
-      
-      if (addedTransaction) {
-        setTransactions(prev => [addedTransaction, ...prev]);
-        setIsAddTransactionOpen(false);
-      } else {
-        console.error('Failed to add transaction: No response from Firebase');
-      }
+      await addTransactionToFirebase(userId, amount, category, color);
+      const userTransactions = await getUserTransactions(userId);
+      setTransactions(userTransactions);
+      // Update balance immediately
+      setBalance(balance + amount);
+      setIsAddTransactionOpen(false);
     } catch (error) {
       console.error('Error adding transaction:', error);
     }
   };
 
-  const handleEditTransaction = async (transactionId: string, newAmount: number) => {
+  const handleEditTransaction = async (updatedTransaction: Transaction) => {
     try {
-      await updateTransaction(transactionId, newAmount);
+      await updateTransaction(updatedTransaction.id, updatedTransaction.amount);
       setTransactions(prev => 
-        prev.map(t => 
-          t.id === transactionId 
-            ? { ...t, amount: newAmount }
-            : t
-        )
+        prev.map(t => t.id === updatedTransaction.id ? updatedTransaction : t)
       );
     } catch (error) {
       console.error('Error updating transaction:', error);
@@ -119,8 +104,14 @@ function HomeContent() {
 
   const handleDeleteTransaction = async (transactionId: string) => {
     try {
+      const transactionToDelete = transactions.find(t => t.id === transactionId);
+      if (!transactionToDelete) return;
+
       await deleteTransaction(transactionId);
       setTransactions(prev => prev.filter(t => t.id !== transactionId));
+      setSelectedTransaction(null);
+      // Update balance
+      setBalance(balance - transactionToDelete.amount);
     } catch (error) {
       console.error('Error deleting transaction:', error);
     }
@@ -129,7 +120,7 @@ function HomeContent() {
   // Group transactions by category and sum amounts
   const expensesByCategory = transactions
     .filter(transaction => transaction.amount < 0) // Only include expenses
-    .reduce((acc, transaction) => {
+    .reduce((acc: { category: string; amount: number; color: string }[], transaction) => {
       const existing = acc.find(e => e.category === transaction.category);
       if (existing) {
         existing.amount += Math.abs(transaction.amount); // Use absolute value for chart
@@ -141,15 +132,50 @@ function HomeContent() {
         });
       }
       return acc;
-    }, [] as { category: string; amount: number; color: string }[]);
+    }, []);
 
-  const totalExpenses = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  // Group transactions by date for bar chart
+  const transactionsByDate = transactions
+    .filter(transaction => transaction.amount < 0) // Only include expenses
+    .reduce((acc: { name: string; amount: number; color: string }[], transaction) => {
+      const date = new Date(transaction.date);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      const existing = acc.find(d => d.name === dayName);
+      if (existing) {
+        existing.amount += Math.abs(transaction.amount);
+      } else {
+        acc.push({
+          name: dayName,
+          amount: Math.abs(transaction.amount),
+          color: transaction.color
+        });
+      }
+      return acc;
+    }, []);
+
+  // Sort by day of week
+  const sortedTransactionsByDate = transactionsByDate.sort((a: { name: string }, b: { name: string }) => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return days.indexOf(a.name) - days.indexOf(b.name);
+  });
+
+  const handleEditBalance = (newBalance: number) => {
+    setBalance(newBalance);
+  };
+
+  // Calculate total from transactions
+  const transactionsTotal = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  
+  // If manual balance is set, use it directly
+  // If not set, use transactions total
+  const totalExpenses = balance !== null ? balance : transactionsTotal;
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center ${isLightTheme ? 'bg-white' : 'bg-gray-900'}`}>
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-16 h-16 border-4 border-[#8B5CF6] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className={`text-lg font-medium ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>Loading...</p>
         </div>
       </div>
     );
@@ -166,11 +192,11 @@ function HomeContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="max-w-md mx-auto px-4 py-8">
-        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+    <main className={`min-h-screen pb-16 ${isLightTheme ? 'bg-gray-50' : 'bg-gray-900'}`}>
+      <div className="p-4">
+        <div className={`rounded-lg p-6 mb-6 ${isLightTheme ? 'bg-white' : 'bg-gray-800'} shadow`}>
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">My Finance</h1>
+            <h1 className={`text-2xl font-bold ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>My Finance</h1>
             <button
               onClick={() => setIsAddTransactionOpen(true)}
               className="w-10 h-10 bg-[#8B5CF6] text-white rounded-full flex items-center justify-center hover:bg-[#7C3AED] transition-colors"
@@ -183,9 +209,20 @@ function HomeContent() {
 
           <div className="flex items-center justify-between mb-6">
             <div>
-              <p className="text-sm text-gray-500">Total Balance</p>
-              <p className={`text-2xl font-bold ${totalExpenses < 0 ? 'text-red-500' : 'text-gray-900'}`}>
-                ${totalExpenses.toLocaleString()}
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-gray-500">Total Balance</p>
+                <button
+                  onClick={() => setIsEditBalanceOpen(true)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+              <p className={`text-2xl font-bold ${balance < 0 ? 'text-red-500' : isLightTheme ? 'text-gray-900' : 'text-white'}`}>
+                ${balance.toLocaleString()}
               </p>
             </div>
             <div className="flex gap-2">
@@ -216,33 +253,37 @@ function HomeContent() {
             {activeChart === 'pie' ? (
               <ExpenseChart expenses={expensesByCategory} income={0} />
             ) : (
-              <BarChart data={barChartData} />
+              <BarChart data={sortedTransactionsByDate} />
             )}
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Transactions</h2>
+            <h2 className={`text-lg font-semibold ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>Recent Transactions</h2>
             {transactions.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No transactions yet</p>
+              <p className={`text-center ${isLightTheme ? 'text-gray-600' : 'text-gray-400'}`}>No transactions yet</p>
             ) : (
               transactions.map((transaction) => (
                 <div
                   key={transaction.id}
                   onClick={() => setSelectedTransaction(transaction)}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
+                  className={`flex items-center justify-between p-4 rounded-xl cursor-pointer ${
+                    isLightTheme 
+                      ? 'bg-gray-50 hover:bg-gray-100' 
+                      : 'bg-gray-700 hover:bg-gray-600'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center"
                       style={{ backgroundColor: transaction.color }}
                     >
-                      <span className="text-white font-medium">
+                      <span className={`text-white font-medium ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
                         {transaction.category.charAt(0)}
                       </span>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{transaction.category}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className={`font-medium ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>{transaction.category}</p>
+                      <p className={`text-sm ${isLightTheme ? 'text-gray-600' : 'text-gray-400'}`}>
                         {transaction.date.toLocaleDateString()}
                       </p>
                     </div>
@@ -276,16 +317,27 @@ function HomeContent() {
           onDelete={handleDeleteTransaction}
         />
       )}
-    </div>
+
+      {isEditBalanceOpen && (
+        <EditBalanceModal
+          isOpen={isEditBalanceOpen}
+          onClose={() => setIsEditBalanceOpen(false)}
+          currentBalance={balance}
+          onSave={handleEditBalance}
+        />
+      )}
+    </main>
   );
 }
 
 export default function Home() {
+  const { isLightTheme } = useTheme();
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center ${isLightTheme ? 'bg-white' : 'bg-gray-900'}`}>
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-16 h-16 border-4 border-[#8B5CF6] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className={`text-lg font-medium ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>Loading...</p>
         </div>
       </div>
     }>

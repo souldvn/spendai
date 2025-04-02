@@ -1,202 +1,262 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Transaction, getUserTransactions } from '@/firebaseConfig';
+import { useState, useEffect } from 'react';
+import { getUserTransactions } from '@/firebaseConfig';
+import { Transaction } from '@/types';
 import BottomNav from '@/components/BottomNav';
 import { useSearchParams } from 'next/navigation';
-import { ChatMessage } from '@/components/ChatMessage';
-import { analyzeFinances, getAIResponse } from '@/lib/financeAI';
+import { useTheme } from '@/context/ThemeContext';
+import { useBalance } from '@/context/BalanceContext';
+import { analyzeFinances } from '@/lib/financeAI';
 
 export default function Analytics() {
   const searchParams = useSearchParams();
   const urlUserId = searchParams.get('userId');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { isLightTheme } = useTheme();
+  const { balance } = useBalance();
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [messages, setMessages] = useState<Array<{ text: string; isAI: boolean }>>([]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [analysis, setAnalysis] = useState<string>('');
+  const [topCategories, setTopCategories] = useState<{ category: string; amount: number; percentage: number }[]>([]);
+  const [financialHealth, setFinancialHealth] = useState<{
+    score: number;
+    status: 'healthy' | 'warning' | 'critical';
+    message: string;
+  }>({ score: 0, status: 'healthy', message: '' });
 
   useEffect(() => {
     const initializeTransactions = async () => {
       const isLocalhost = window.location.hostname === 'localhost';
-      let userId = isLocalhost ? 'test-user-123' : urlUserId;
-      
-      // Если userId нет в URL, пробуем получить из localStorage
-      if (!userId) {
-        userId = localStorage.getItem('userId');
-      }
-      
-      // Если userId есть в URL, сохраняем его в localStorage
-      if (urlUserId) {
-        localStorage.setItem('userId', urlUserId);
-      }
+      const userId = isLocalhost ? 'test-user-123' : urlUserId;
       
       if (userId) {
-        const userTransactions = await getUserTransactions(userId);
-        setTransactions(userTransactions);
-        // Add welcome message
-        setMessages([{
-          text: "Привет! Я ваш финансовый AI-помощник. Я могу проанализировать ваши расходы и дать рекомендации по оптимизации бюджета. Также вы можете задать мне любые вопросы о ваших финансах.",
-          isAI: true
-        }]);
+        try {
+          const userTransactions = await getUserTransactions(userId);
+          setTransactions(userTransactions);
+          
+          // Calculate totals
+          const totalExpenses = userTransactions
+            .filter((t: Transaction) => t.amount < 0)
+            .reduce((sum: number, t: Transaction) => sum + Math.abs(t.amount), 0);
+          
+          const totalIncome = userTransactions
+            .filter((t: Transaction) => t.amount > 0)
+            .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+
+          // Group expenses by category
+          const expensesByCategory = userTransactions
+            .filter((t: Transaction) => t.amount < 0)
+            .reduce((acc: Record<string, number>, t: Transaction) => {
+              acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount);
+              return acc;
+            }, {} as Record<string, number>);
+
+          // Calculate top categories
+          const categoriesArray = Object.entries(expensesByCategory)
+            .map(([category, amount]) => ({
+              category,
+              amount,
+              percentage: (amount / totalExpenses) * 100
+            }))
+            .sort((a, b) => b.amount - a.amount)
+            .slice(0, 3);
+          
+          setTopCategories(categoriesArray);
+
+          // Calculate financial health
+          const expenseRatio = totalExpenses / totalIncome;
+          let healthScore = 100;
+          let healthStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
+          let healthMessage = '';
+
+          // Calculate balance factor (how much balance covers monthly expenses)
+          const balanceCoverageMonths = totalExpenses > 0 ? balance / totalExpenses : 0;
+          
+          // Determine health based on both expense ratio and balance coverage
+          if (expenseRatio > 1) {
+            // Расходы превышают доходы
+            healthScore = 30;
+            healthStatus = 'critical';
+            healthMessage = 'Ваши расходы превышают доходы. Необходимо срочно оптимизировать бюджет.';
+          } else if (expenseRatio > 0.8) {
+            // Расходы близки к доходам
+            if (balanceCoverageMonths >= 3) {
+              // Есть запас в виде баланса на 3+ месяца
+              healthScore = 75;
+              healthStatus = 'warning';
+              healthMessage = 'Расходы высокие, но есть финансовая подушка. Рекомендуется сократить расходы.';
+            } else {
+              healthScore = 60;
+              healthStatus = 'warning';
+              healthMessage = 'Ваши расходы близки к доходам, а финансовая подушка недостаточна. Рекомендуется оптимизировать расходы.';
+            }
+          } else {
+            // Расходы меньше доходов
+            if (balanceCoverageMonths >= 6) {
+              // Отличный запас
+              healthScore = 100;
+              healthStatus = 'healthy';
+              healthMessage = 'Отличное финансовое состояние! У вас хороший баланс доходов/расходов и надежная финансовая подушка.';
+            } else if (balanceCoverageMonths >= 3) {
+              // Хороший запас
+              healthScore = 90;
+              healthStatus = 'healthy';
+              healthMessage = 'Хорошее финансовое состояние. Продолжайте накапливать финансовую подушку.';
+            } else {
+              // Маленький запас
+              healthScore = 80;
+              healthStatus = 'healthy';
+              healthMessage = 'Хороший баланс доходов и расходов. Рекомендуется увеличить финансовую подушку.';
+            }
+          }
+
+          setFinancialHealth({ score: healthScore, status: healthStatus, message: healthMessage });
+
+          // Get analysis
+          const financialAnalysis = analyzeFinances({
+            totalIncome,
+            totalExpenses,
+            expensesByCategory,
+            currentBalance: balance
+          });
+
+          setAnalysis(financialAnalysis);
+        } catch (error) {
+          console.error('Error analyzing finances:', error);
+          setAnalysis('Произошла ошибка при анализе. Пожалуйста, попробуйте позже.');
+        } finally {
+          setIsLoading(false);
+        }
       }
     };
 
     initializeTransactions();
-  }, [urlUserId]);
+  }, [urlUserId, balance]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleAnalyzeFinances = async () => {
-    setIsAnalyzing(true);
-    
-    try {
-      // Calculate total expenses and income
-      const totalExpenses = transactions
-        .filter(t => t.amount < 0)
-        .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-      
-      const totalIncome = transactions
-        .filter(t => t.amount > 0)
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      // Group expenses by category
-      const expensesByCategory = transactions
-        .filter(t => t.amount < 0)
-        .reduce((acc, t) => {
-          acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount);
-          return acc;
-        }, {} as Record<string, number>);
-
-      // Get analysis
-      const analysis = analyzeFinances({
-        totalIncome,
-        totalExpenses,
-        expensesByCategory
-      });
-
-      setMessages(prev => [...prev, {
-        text: analysis,
-        isAI: true
-      }]);
-    } catch (error) {
-      console.error('Error analyzing finances:', error);
-      setMessages(prev => [...prev, {
-        text: "Произошла ошибка при анализе. Пожалуйста, попробуйте позже.",
-        isAI: true
-      }]);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim()) return;
-
-    const userMessage = inputMessage;
-    setInputMessage('');
-
-    // Add user message
-    setMessages(prev => [...prev, {
-      text: userMessage,
-      isAI: false
-    }]);
-
-    try {
-      // Prepare financial context
-      const totalExpenses = transactions
-        .filter(t => t.amount < 0)
-        .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-      
-      const totalIncome = transactions
-        .filter(t => t.amount > 0)
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const context = `User's financial summary:
-Total Income: $${totalIncome}
-Total Expenses: $${totalExpenses}
-Balance: $${totalIncome - totalExpenses}`;
-
-      // Get AI response
-      const response = getAIResponse(userMessage, context);
-
-      setMessages(prev => [...prev, {
-        text: response,
-        isAI: true
-      }]);
-    } catch (error) {
-      console.error('Error getting AI response:', error);
-      setMessages(prev => [...prev, {
-        text: "Произошла ошибка. Пожалуйста, попробуйте позже.",
-        isAI: true
-      }]);
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${isLightTheme ? 'bg-white' : 'bg-gray-900'}`}>
+        <div className="w-8 h-8 border-4 border-[#8B5CF6] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="max-w-md mx-auto px-4 py-8">
-        <h1 className="text-xl font-semibold mb-6">AI Аналитика</h1>
+    <main className={`min-h-screen pb-16 ${isLightTheme ? 'bg-gray-50' : 'bg-gray-900'}`}>
+      <div className="p-4">
+        <div className={`rounded-lg p-6 ${isLightTheme ? 'bg-white' : 'bg-gray-800'} shadow`}>
+          <h1 className={`text-2xl font-bold mb-6 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
+            Analytics
+          </h1>
 
-        <div className="bg-white rounded-xl p-4 mb-4">
-          <button
-            onClick={handleAnalyzeFinances}
-            disabled={isAnalyzing}
-            className={`w-full py-3 rounded-lg text-white font-medium ${
-              isAnalyzing ? 'bg-gray-400' : 'bg-[#8B5CF6]'
-            }`}
-          >
-            {isAnalyzing ? 'Анализирую...' : 'Запросить анализ'}
-          </button>
-        </div>
-        
-        <div className="bg-white rounded-xl p-4 mb-4 h-[calc(100vh-300px)] overflow-y-auto">
-          <div className="space-y-4">
-            {messages.map((message, index) => (
-              <ChatMessage
-                key={index}
-                message={message.text}
-                isAI={message.isAI}
-              />
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
+          {transactions.length === 0 ? (
+            <p className={`text-center ${isLightTheme ? 'text-gray-600' : 'text-gray-400'}`}>
+              No transactions available for analysis
+            </p>
+          ) : (
+            <div className="space-y-6">
+              {/* Financial Health Indicator */}
+              <div className={`p-4 rounded-lg ${isLightTheme ? 'bg-gray-50' : 'bg-gray-700'}`}>
+                <h3 className={`text-lg font-semibold mb-4 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
+                  Financial Health
+                </h3>
+                <div className="flex items-start gap-4">
+                  <div className={`flex items-center justify-center w-16 h-16 rounded-full ${
+                    financialHealth.status === 'healthy' ? 'bg-green-100' :
+                    financialHealth.status === 'warning' ? 'bg-yellow-100' :
+                    'bg-red-100'
+                  }`}>
+                    <span className={`text-2xl font-bold ${
+                      financialHealth.status === 'healthy' ? 'text-green-600' :
+                      financialHealth.status === 'warning' ? 'text-yellow-600' :
+                      'text-red-600'
+                    }`}>
+                      {financialHealth.score}%
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <p className={`text-base font-medium mb-1 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
+                      {financialHealth.message}
+                    </p>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                      <div
+                        className={`h-2 rounded-full transition-all duration-500 ${
+                          financialHealth.status === 'healthy' ? 'bg-green-500' :
+                          financialHealth.status === 'warning' ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        }`}
+                        style={{ width: `${financialHealth.score}%` }}
+                      />
+                    </div>
+                    <p className={`text-sm ${isLightTheme ? 'text-gray-600' : 'text-gray-300'}`}>
+                      {financialHealth.status === 'healthy' ? 'Отличное финансовое состояние' :
+                       financialHealth.status === 'warning' ? 'Требует внимания' :
+                       'Критическое состояние'}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-        <div className="bg-white rounded-xl p-2 flex items-center gap-2">
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Задайте вопрос..."
-            className="flex-1 px-4 py-2 text-sm focus:outline-none"
-          />
-          <button
-            onClick={handleSendMessage}
-            className="p-2 rounded-lg bg-[#8B5CF6] text-white"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-              />
-            </svg>
-          </button>
+              {/* Top Categories */}
+              <div className={`p-4 rounded-lg ${isLightTheme ? 'bg-gray-50' : 'bg-gray-700'}`}>
+                <h3 className={`text-lg font-semibold mb-4 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
+                  Top Categories
+                </h3>
+                <div className="space-y-3">
+                  {topCategories.map((category, index) => (
+                    <div key={category.category}>
+                      <div className="flex justify-between mb-1">
+                        <span className={`text-sm ${isLightTheme ? 'text-gray-600' : 'text-gray-300'}`}>
+                          {category.category}
+                        </span>
+                        <span className={`text-sm ${isLightTheme ? 'text-gray-600' : 'text-gray-300'}`}>
+                          {category.percentage.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${
+                            index === 0 ? 'bg-red-500' :
+                            index === 1 ? 'bg-orange-500' :
+                            'bg-yellow-500'
+                          }`}
+                          style={{ width: `${category.percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Financial Overview */}
+              <div className={`p-4 rounded-lg ${isLightTheme ? 'bg-gray-50' : 'bg-gray-700'}`}>
+                <h3 className={`text-lg font-semibold mb-2 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
+                  Financial Overview
+                </h3>
+                <div className={`whitespace-pre-wrap font-mono text-sm ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
+                  {analysis}
+                </div>
+              </div>
+
+              {/* Transaction Summary */}
+              <div className={`p-4 rounded-lg ${isLightTheme ? 'bg-gray-50' : 'bg-gray-700'}`}>
+                <h3 className={`text-lg font-semibold mb-2 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
+                  Transaction Summary
+                </h3>
+                <p className={`${isLightTheme ? 'text-gray-600' : 'text-gray-300'}`}>
+                  Total number of transactions: {transactions.length}
+                </p>
+                <p className={`${isLightTheme ? 'text-gray-600' : 'text-gray-300'}`}>
+                  Last updated: {new Date().toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       <BottomNav />
-    </div>
+    </main>
   );
 } 
