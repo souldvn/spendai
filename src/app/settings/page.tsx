@@ -3,15 +3,19 @@
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import { useTheme } from '@/context/ThemeContext';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Settings() {
   const router = useRouter();
   const { isLightTheme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <div className={`min-h-screen pb-20 ${isLightTheme ? 'bg-gray-50' : 'bg-gray-900'}`}>
       <div className="max-w-md mx-auto px-4 py-8">
-        <h1 className={`text-xl font-semibold mb-6 ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>Settings</h1>
+        <h1 className={`text-xl font-semibold mb-6 ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
+          {t('settings.title')}
+        </h1>
 
         <div className={`rounded-xl divide-y ${isLightTheme ? 'bg-white divide-gray-100' : 'bg-gray-800 divide-gray-700'}`}>
           {/* Report Management */}
@@ -21,7 +25,9 @@ export default function Settings() {
             }`}
             onClick={() => router.push('/settings/reports')}
           >
-            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>Report Management</span>
+            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
+              {t('settings.reportManagement')}
+            </span>
             <svg 
               className="w-5 h-5 text-gray-400" 
               fill="none" 
@@ -44,7 +50,9 @@ export default function Settings() {
             }`}
             onClick={() => router.push('/settings/language')}
           >
-            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>Language</span>
+            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
+              {t('settings.language')}
+            </span>
             <svg 
               className="w-5 h-5 text-gray-400" 
               fill="none" 
@@ -62,7 +70,9 @@ export default function Settings() {
 
           {/* Light Theme Toggle */}
           <div className="p-4 flex items-center justify-between">
-            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>Light Theme</span>
+            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
+              {t('settings.light')} {t('settings.theme')}
+            </span>
             <button
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
                 isLightTheme ? 'bg-[#8B5CF6]' : 'bg-gray-200'

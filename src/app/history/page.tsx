@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useBalance } from '@/context/BalanceContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useTranslation } from '@/hooks/useTranslation';
 import BottomNav from '@/components/BottomNav';
 import EditTransactionModal from '@/components/EditTransactionModal';
 import DatePicker from 'react-datepicker';
@@ -16,6 +17,7 @@ function HistoryContent() {
   const urlUserId = searchParams.get('userId');
   const { balance, setBalance } = useBalance();
   const { isLightTheme } = useTheme();
+  const { t } = useTranslation();
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -143,7 +145,9 @@ function HistoryContent() {
   return (
     <div className={`min-h-screen pb-20 ${isLightTheme ? 'bg-gray-50' : 'bg-gray-900'}`}>
       <div className="max-w-md mx-auto px-4 py-8">
-        <h1 className={`text-xl font-semibold mb-6 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>История транзакций</h1>
+        <h1 className={`text-xl font-semibold mb-6 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
+          {t('history.title')}
+        </h1>
         
         <div className="flex gap-2 mb-4">
           <div className="relative flex-1">
@@ -153,10 +157,10 @@ function HistoryContent() {
                 transactionType ? 'bg-[#8B5CF6] text-white' : 'bg-white border'
               }`}
             >
-              <span>Transaction type</span>
+              <span>{t('history.transactionType')}</span>
               {transactionType && (
                 <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
-                  {transactionType}
+                  {t(`history.${transactionType}`)}
                 </span>
               )}
             </button>
@@ -169,7 +173,7 @@ function HistoryContent() {
                   }}
                   className="w-full px-4 py-2 text-left hover:bg-gray-50"
                 >
-                  All
+                  {t('history.all')}
                 </button>
                 <button
                   onClick={() => {
@@ -178,7 +182,7 @@ function HistoryContent() {
                   }}
                   className="w-full px-4 py-2 text-left hover:bg-gray-50"
                 >
-                  Income
+                  {t('history.income')}
                 </button>
                 <button
                   onClick={() => {
@@ -187,7 +191,7 @@ function HistoryContent() {
                   }}
                   className="w-full px-4 py-2 text-left hover:bg-gray-50"
                 >
-                  Expense
+                  {t('history.expenses')}
                 </button>
               </div>
             )}
@@ -201,7 +205,7 @@ function HistoryContent() {
               period === 'week' ? 'bg-[#8B5CF6] text-white' : 'bg-white border'
             }`}
           >
-            Week
+            {t('history.period.week')}
           </button>
           <button
             onClick={() => setPeriod('month')}
@@ -209,7 +213,7 @@ function HistoryContent() {
               period === 'month' ? 'bg-[#8B5CF6] text-white' : 'bg-white border'
             }`}
           >
-            Month
+            {t('history.period.month')}
           </button>
           <button
             onClick={() => setPeriod('year')}
@@ -217,7 +221,7 @@ function HistoryContent() {
               period === 'year' ? 'bg-[#8B5CF6] text-white' : 'bg-white border'
             }`}
           >
-            Year
+            {t('history.period.year')}
           </button>
           <button
             onClick={() => setPeriod('Other period')}
@@ -225,7 +229,7 @@ function HistoryContent() {
               period === 'Other period' ? 'bg-[#8B5CF6] text-white' : 'bg-white border'
             }`}
           >
-            Other
+            {t('history.period.other')}
           </button>
         </div>
 
@@ -239,7 +243,7 @@ function HistoryContent() {
                 setDateRange(update);
               }}
               isClearable={true}
-              placeholderText="Select date range"
+              placeholderText={t('history.selectDateRange')}
               className="w-full px-4 py-2 rounded-lg text-sm font-medium border focus:outline-none focus:ring-2 focus:ring-purple-500"
               wrapperClassName="w-full"
               dateFormat="MMM d, yyyy"
@@ -273,7 +277,9 @@ function HistoryContent() {
                         </span>
                       </div>
                       <div>
-                        <p className={`font-medium ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>{transaction.category}</p>
+                        <p className={`font-medium ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
+                          {t(`categories.${transaction.category.toLowerCase()}`)}
+                        </p>
                       </div>
                     </div>
                     <p className={`font-semibold ${

@@ -12,6 +12,7 @@ import type { Transaction } from '@/types';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useBalance } from '@/context/BalanceContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const barChartData = [
   { name: 'Пн', amount: 45000 },
@@ -29,6 +30,7 @@ function HomeContent() {
   const urlUserId = searchParams.get('userId');
   const { balance, setBalance, isLoading: isBalanceLoading } = useBalance();
   const { isLightTheme } = useTheme();
+  const { t } = useTranslation();
   
   const [activeChart, setActiveChart] = useState<'pie' | 'bar'>('pie');
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
@@ -175,7 +177,7 @@ function HomeContent() {
       <div className={`min-h-screen flex items-center justify-center ${isLightTheme ? 'bg-white' : 'bg-gray-900'}`}>
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#8B5CF6] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className={`text-lg font-medium ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>Loading...</p>
+          <p className={`text-lg font-medium ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -185,7 +187,13 @@ function HomeContent() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-xl font-semibold text-gray-800">Please open this app from Telegram</h1>
+          <h1 className="text-xl font-semibold text-gray-800">{t('common.openFromTelegram')}</h1>
+          <button
+            onClick={() => router.push('/error')}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4"
+          >
+            {t('common.goToError')}
+          </button>
         </div>
       </div>
     );
@@ -196,7 +204,7 @@ function HomeContent() {
       <div className="p-4">
         <div className={`rounded-lg p-6 mb-6 ${isLightTheme ? 'bg-white' : 'bg-gray-800'} shadow`}>
           <div className="flex justify-between items-center mb-6">
-            <h1 className={`text-2xl font-bold ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>My Finance</h1>
+            <h1 className={`text-2xl font-bold ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>{t('home.myFinance')}</h1>
             <button
               onClick={() => setIsAddTransactionOpen(true)}
               className="w-10 h-10 bg-[#8B5CF6] text-white rounded-full flex items-center justify-center hover:bg-[#7C3AED] transition-colors"
@@ -210,7 +218,7 @@ function HomeContent() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <div className="flex items-center gap-2">
-                <p className="text-sm text-gray-500">Total Balance</p>
+                <p className="text-sm text-gray-500">{t('home.totalBalance')}</p>
                 <button
                   onClick={() => setIsEditBalanceOpen(true)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -234,7 +242,7 @@ function HomeContent() {
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                Pie
+                {t('home.pieChart')}
               </button>
               <button
                 onClick={() => setActiveChart('bar')}
@@ -244,7 +252,7 @@ function HomeContent() {
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                Bar
+                {t('home.barChart')}
               </button>
             </div>
           </div>
@@ -258,9 +266,9 @@ function HomeContent() {
           </div>
 
           <div className="space-y-4">
-            <h2 className={`text-lg font-semibold ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>Recent Transactions</h2>
+            <h2 className={`text-lg font-semibold ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>{t('home.recentTransactions')}</h2>
             {transactions.length === 0 ? (
-              <p className={`text-center ${isLightTheme ? 'text-gray-600' : 'text-gray-400'}`}>No transactions yet</p>
+              <p className={`text-center ${isLightTheme ? 'text-gray-600' : 'text-gray-400'}`}>{t('common.noTransactions')}</p>
             ) : (
               transactions.map((transaction) => (
                 <div
@@ -277,13 +285,13 @@ function HomeContent() {
                       className="w-10 h-10 rounded-full flex items-center justify-center"
                       style={{ backgroundColor: transaction.color }}
                     >
-                      <span className={`text-white font-medium ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
-                        {transaction.category.charAt(0)}
+                      <span className="text-white font-medium">
+                        {t(`categories.${transaction.category}`).charAt(0)}
                       </span>
                     </div>
                     <div>
-                      <p className={`font-medium ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>{transaction.category}</p>
-                      <p className={`text-sm ${isLightTheme ? 'text-gray-600' : 'text-gray-400'}`}>
+                      <p className="font-medium text-gray-900">{t(`categories.${transaction.category}`)}</p>
+                      <p className="text-sm text-gray-500">
                         {transaction.date.toLocaleDateString()}
                       </p>
                     </div>
@@ -332,12 +340,13 @@ function HomeContent() {
 
 export default function Home() {
   const { isLightTheme } = useTheme();
+  const { t } = useTranslation();
   return (
     <Suspense fallback={
       <div className={`min-h-screen flex items-center justify-center ${isLightTheme ? 'bg-white' : 'bg-gray-900'}`}>
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#8B5CF6] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className={`text-lg font-medium ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>Loading...</p>
+          <p className={`text-lg font-medium ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>{t('common.loading')}</p>
         </div>
       </div>
     }>

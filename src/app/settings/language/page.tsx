@@ -1,16 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import { useTheme } from '@/context/ThemeContext';
-
-type Language = 'en' | 'ru';
+import { useLanguage } from '@/context/LanguageContext';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function LanguageSettings() {
   const router = useRouter();
   const { isLightTheme } = useTheme();
-  const [selectedLanguage, setSelectedLanguage] = useState<Language>('en');
+  const { language, setLanguage } = useLanguage();
+  const { t } = useTranslation();
+  const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ru'>(language);
+
+  useEffect(() => {
+    setSelectedLanguage(language);
+  }, [language]);
+
+  const handleLanguageChange = (newLanguage: 'en' | 'ru') => {
+    setSelectedLanguage(newLanguage);
+    setLanguage(newLanguage);
+  };
 
   return (
     <div className={`min-h-screen pb-20 ${isLightTheme ? 'bg-gray-50' : 'bg-gray-900'}`}>
@@ -35,7 +46,7 @@ export default function LanguageSettings() {
             </svg>
           </button>
           <h1 className={`text-xl font-semibold ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
-            Language
+            {t('settings.language')}
           </h1>
         </div>
 
@@ -45,9 +56,11 @@ export default function LanguageSettings() {
             className={`p-4 flex items-center justify-between cursor-pointer ${
               isLightTheme ? 'hover:bg-gray-50' : 'hover:bg-gray-700'
             }`}
-            onClick={() => setSelectedLanguage('ru')}
+            onClick={() => handleLanguageChange('ru')}
           >
-            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>Russian</span>
+            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
+              {t('settings.languages.ru')}
+            </span>
             <div className={`w-5 h-5 rounded-full border-2 border-[#8B5CF6] flex items-center justify-center ${
               isLightTheme ? 'bg-white' : 'bg-gray-800'
             }`}>
@@ -62,9 +75,11 @@ export default function LanguageSettings() {
             className={`p-4 flex items-center justify-between cursor-pointer ${
               isLightTheme ? 'hover:bg-gray-50' : 'hover:bg-gray-700'
             }`}
-            onClick={() => setSelectedLanguage('en')}
+            onClick={() => handleLanguageChange('en')}
           >
-            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>English</span>
+            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
+              {t('settings.languages.en')}
+            </span>
             <div className={`w-5 h-5 rounded-full border-2 border-[#8B5CF6] flex items-center justify-center ${
               isLightTheme ? 'bg-white' : 'bg-gray-800'
             }`}>

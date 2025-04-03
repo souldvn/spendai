@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import { useTheme } from '@/context/ThemeContext';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function ReportManagement() {
   const router = useRouter();
   const { isLightTheme } = useTheme();
+  const { t } = useTranslation();
   const [reports, setReports] = useState({
     daily: false,
     weekly: false,
@@ -45,14 +47,16 @@ export default function ReportManagement() {
             </svg>
           </button>
           <h1 className={`text-xl font-semibold ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
-            Report Management
+            {t('settings.reports.title')}
           </h1>
         </div>
 
         <div className={`rounded-xl divide-y ${isLightTheme ? 'bg-white divide-gray-100' : 'bg-gray-800 divide-gray-700'}`}>
           {/* Daily Report */}
           <div className="p-4 flex items-center justify-between">
-            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>Daily Report</span>
+            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
+              {t('settings.reports.daily')}
+            </span>
             <button
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
                 reports.daily ? 'bg-[#8B5CF6]' : 'bg-gray-200'
@@ -69,7 +73,9 @@ export default function ReportManagement() {
 
           {/* Weekly Report */}
           <div className="p-4 flex items-center justify-between">
-            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>Weekly Report</span>
+            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
+              {t('settings.reports.weekly')}
+            </span>
             <button
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
                 reports.weekly ? 'bg-[#8B5CF6]' : 'bg-gray-200'
@@ -86,7 +92,9 @@ export default function ReportManagement() {
 
           {/* Monthly Report */}
           <div className="p-4 flex items-center justify-between">
-            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>Monthly Report</span>
+            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
+              {t('settings.reports.monthly')}
+            </span>
             <button
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
                 reports.monthly ? 'bg-[#8B5CF6]' : 'bg-gray-200'
@@ -101,9 +109,11 @@ export default function ReportManagement() {
             </button>
           </div>
 
-          {/* Cost Optimization Report */}
+          {/* Optimization Report */}
           <div className="p-4 flex items-center justify-between">
-            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>Cost Optimization Report</span>
+            <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
+              {t('settings.reports.optimization')}
+            </span>
             <button
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
                 reports.optimization ? 'bg-[#8B5CF6]' : 'bg-gray-200'

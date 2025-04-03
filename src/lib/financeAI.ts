@@ -1,89 +1,60 @@
+type TFunction = (key: string, params?: Record<string, string>) => string;
+
 interface FinancialAnalysis {
   totalIncome: number;
   totalExpenses: number;
-  expensesByCategory: Record<string, number>;
+  expensesByCategory: { category: string; amount: number }[];
   currentBalance: number;
+  t: TFunction;
 }
 
-function getRecommendationsByCategory(category: string, amount: number, totalExpenses: number): string {
+function getRecommendationsByCategory(category: string, amount: number, totalExpenses: number, t: TFunction): string | null {
   const percentage = (amount / totalExpenses) * 100;
+  const categoryName = t(`categories.${category}`);
   
-  const recommendations: Record<string, string[]> = {
-    'Housing': [
-      '• Рассмотрите возможность поиска соседа по квартире для разделения расходов',
-      '• Сравните цены на другие варианты жилья в вашем районе',
-      '• Оптимизируйте расходы на коммунальные услуги'
-    ],
-    'Transport': [
-      '• Рассмотрите использование общественного транспорта',
-      '• Попробуйте carpooling или совместные поездки',
-      '• Оптимизируйте маршруты для экономии топлива'
-    ],
-    'Food & Groceries': [
-      '• Планируйте меню на неделю заранее',
-      '• Покупайте продукты по акциям и со скидками',
-      '• Готовьте еду дома вместо заказов'
-    ],
-    'Entertainment': [
-      '• Ищите бесплатные развлечения и мероприятия',
-      '• Используйте групповые скидки и акции',
-      '• Рассмотрите подписки вместо разовых покупок'
-    ],
-    'Shopping': [
-      '• Составляйте список покупок и придерживайтесь его',
-      '• Дождитесь сезонных распродаж',
-      '• Сравнивайте цены в разных магазинах'
-    ],
-    'Health & Wellness': [
-      '• Проверьте программы страхования',
-      '• Занимайтесь спортом дома или на улице',
-      '• Ищите скидки на медицинские услуги'
-    ]
-  };
-
-  if (percentage > 30) {
-    return `⚠️ Расходы на ${category} составляют ${percentage.toFixed(1)}% от общих расходов.\n${
-      recommendations[category]?.join('\n') || '• Рассмотрите способы оптимизации этой категории расходов'
-    }`;
+  if (percentage > 50) {
+    return `• ⚠️ ${t('analytics.analysis.categoryHighSpending', { category: categoryName })}`;
+  } else if (percentage > 30) {
+    return `• 💡 ${t('analytics.analysis.categoryModerateSpending', { category: categoryName })}`;
   }
   
-  return '';
+  return null;
 }
 
 export function analyzeFinances(data: FinancialAnalysis): string {
-  const { totalIncome, totalExpenses, expensesByCategory, currentBalance } = data;
+  const { totalIncome, totalExpenses, expensesByCategory, currentBalance, t } = data;
   
-  let analysis = "📊 Анализ ваших финансов:\n\n";
+  let analysis = `${t('analytics.analysis.overview')}:\n\n`;
   
   // Basic overview
-  analysis += `💰 Общий доход: $${totalIncome.toLocaleString()}\n`;
-  analysis += `💸 Общие расходы: $${totalExpenses.toLocaleString()}\n`;
-  analysis += `${currentBalance >= 0 ? '✅' : '⚠️'} Баланс: $${currentBalance.toLocaleString()}\n\n`;
+  analysis += `${t('analytics.analysis.income')}: $${totalIncome.toLocaleString()}\n`;
+  analysis += `${t('analytics.analysis.expenses')}: $${totalExpenses.toLocaleString()}\n`;
+  analysis += `${currentBalance >= 0 ? '✅' : '⚠️'} ${t('analytics.analysis.balance')}: $${currentBalance.toLocaleString()}\n\n`;
   
   // Expenses by category
-  analysis += "📈 Расходы по категориям:\n";
-  Object.entries(expensesByCategory)
-    .sort(([, a], [, b]) => b - a)
-    .forEach(([category, amount]) => {
+  analysis += `${t('analytics.analysis.expensesByCategory')}:\n`;
+  expensesByCategory
+    .sort((a, b) => b.amount - a.amount)
+    .forEach(({ category, amount }) => {
       const percentage = (amount / totalExpenses * 100).toFixed(1);
-      analysis += `${category}: $${amount.toLocaleString()} (${percentage}%)\n`;
+      analysis += `${t(`categories.${category}`)}: $${amount.toLocaleString()} (${percentage}%)\n`;
     });
   
   // Recommendations
-  analysis += "\n💡 Рекомендации:\n";
+  analysis += `\n${t('analytics.analysis.recommendations')}:\n`;
   
   // Balance recommendations
   if (currentBalance < 0) {
-    analysis += "• ⚠️ Ваши расходы превышают доходы. Необходимо сократить расходы или увеличить доход.\n";
+    analysis += `• ⚠️ ${t('analytics.analysis.balanceNegative')}\n`;
   } else if (currentBalance < totalIncome * 0.2) {
-    analysis += "• ⚠️ У вас небольшой запас средств. Постарайтесь увеличить сбережения.\n";
+    analysis += `• ⚠️ ${t('analytics.analysis.balanceLow')}\n`;
   } else if (currentBalance > totalIncome * 0.5) {
-    analysis += "• 💰 У вас хороший запас средств. Рассмотрите возможности инвестирования.\n";
+    analysis += `• 💰 ${t('analytics.analysis.balanceGood')}\n`;
   }
 
   // Category-specific recommendations
-  Object.entries(expensesByCategory).forEach(([category, amount]) => {
-    const recommendation = getRecommendationsByCategory(category, amount, totalExpenses);
+  expensesByCategory.forEach(({ category, amount }) => {
+    const recommendation = getRecommendationsByCategory(category, amount, totalExpenses, t);
     if (recommendation) {
       analysis += recommendation + "\n";
     }
@@ -91,10 +62,10 @@ export function analyzeFinances(data: FinancialAnalysis): string {
 
   // General recommendations
   if (totalExpenses > 0) {
-    analysis += "\n🎯 Общие рекомендации:\n";
-    analysis += "• Создайте бюджет на месяц и следите за его выполнением\n";
-    analysis += "• Откладывайте минимум 20% дохода на сбережения\n";
-    analysis += "• Ведите учет всех расходов для лучшего контроля\n";
+    analysis += `\n🎯 ${t('analytics.analysis.generalRecommendations')}:\n`;
+    analysis += `• ${t('analytics.analysis.createBudget')}\n`;
+    analysis += `• ${t('analytics.analysis.savePercentage')}\n`;
+    analysis += `• ${t('analytics.analysis.trackExpenses')}\n`;
   }
 
   return analysis;

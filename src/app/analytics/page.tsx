@@ -8,6 +8,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { useBalance } from '@/context/BalanceContext';
 import { analyzeFinances } from '@/lib/financeAI';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Analytics() {
   const searchParams = useSearchParams();
@@ -15,6 +16,7 @@ export default function Analytics() {
   const urlUserId = searchParams.get('userId');
   const { isLightTheme } = useTheme();
   const { balance } = useBalance();
+  const { t } = useTranslation();
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,22 +31,18 @@ export default function Analytics() {
   useEffect(() => {
     const initializeTransactions = async () => {
       try {
-        // Determine if we're on localhost and set the appropriate userId
         const isLocalhost = window.location.hostname === 'localhost';
         let newUserId = isLocalhost ? 'test-user-123' : urlUserId;
         
-        // If no userId in URL, try to get from localStorage
         if (!newUserId) {
           newUserId = localStorage.getItem('userId');
         }
         
-        // If still no userId, redirect to error page
         if (!newUserId) {
           router.push('/error?message=Please open this app from Telegram');
           return;
         }
         
-        // Save userId to localStorage if it's not already there
         if (!localStorage.getItem('userId')) {
           localStorage.setItem('userId', newUserId);
         }
@@ -52,7 +50,6 @@ export default function Analytics() {
         const userTransactions = await getUserTransactions(newUserId);
         setTransactions(userTransactions);
         
-        // Calculate totals
         const totalExpenses = userTransactions
           .filter((t: Transaction) => t.amount < 0)
           .reduce((sum: number, t: Transaction) => sum + Math.abs(t.amount), 0);
@@ -61,17 +58,23 @@ export default function Analytics() {
           .filter((t: Transaction) => t.amount > 0)
           .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
 
-        // Group expenses by category
         const expensesByCategory = userTransactions
           .filter((t: Transaction) => t.amount < 0)
-          .reduce((acc: Record<string, number>, t: Transaction) => {
-            acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount);
+          .reduce((acc: { category: string; amount: number }[], t: Transaction) => {
+            const existing = acc.find(e => e.category === t.category);
+            if (existing) {
+              existing.amount += Math.abs(t.amount);
+            } else {
+              acc.push({
+                category: t.category,
+                amount: Math.abs(t.amount)
+              });
+            }
             return acc;
-          }, {} as Record<string, number>);
+          }, []);
 
-        // Calculate top categories
-        const categoriesArray = Object.entries(expensesByCategory)
-          .map(([category, amount]) => ({
+        const categoriesArray = expensesByCategory
+          .map(({ category, amount }) => ({
             category,
             amount,
             percentage: (amount / totalExpenses) * 100
@@ -81,61 +84,54 @@ export default function Analytics() {
         
         setTopCategories(categoriesArray);
 
-        // Calculate financial health
         const expenseRatio = totalExpenses / totalIncome;
         let healthScore = 100;
         let healthStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
         let healthMessage = '';
 
-        // Calculate balance factor (how much balance covers monthly expenses)
         const balanceCoverageMonths = totalExpenses > 0 ? balance / totalExpenses : 0;
 
         if (expenseRatio > 1) {
-          // Расходы превышают доходы
           healthScore = 60;
           healthStatus = 'warning';
-          healthMessage = 'Ваши расходы превышают доходы. Рекомендуется сократить расходы.';
+          healthMessage = t('analytics.healthMessages.expensesExceedIncome');
         } else {
-          // Расходы меньше доходов
           if (balanceCoverageMonths >= 6) {
-            // Отличный запас
             healthScore = 100;
             healthStatus = 'healthy';
-            healthMessage = 'Отличное финансовое состояние! У вас хороший баланс доходов/расходов и надежная финансовая подушка.';
+            healthMessage = t('analytics.healthMessages.excellentBuffer');
           } else if (balanceCoverageMonths >= 3) {
-            // Хороший запас
             healthScore = 90;
             healthStatus = 'healthy';
-            healthMessage = 'Хорошее финансовое состояние. Продолжайте накапливать финансовую подушку.';
+            healthMessage = t('analytics.healthMessages.goodBuffer');
           } else {
-            // Маленький запас
             healthScore = 80;
             healthStatus = 'healthy';
-            healthMessage = 'Хороший баланс доходов и расходов. Рекомендуется увеличить финансовую подушку.';
+            healthMessage = t('analytics.healthMessages.lowBuffer');
           }
         }
 
         setFinancialHealth({ score: healthScore, status: healthStatus, message: healthMessage });
 
-        // Get analysis
-        const financialAnalysis = analyzeFinances({
+        const analysis = analyzeFinances({
           totalIncome,
           totalExpenses,
           expensesByCategory,
-          currentBalance: balance
+          currentBalance: balance,
+          t
         });
 
-        setAnalysis(financialAnalysis);
+        setAnalysis(analysis);
       } catch (error) {
         console.error('Error analyzing finances:', error);
-        setAnalysis('Произошла ошибка при анализе. Пожалуйста, попробуйте позже.');
+        setAnalysis(t('analytics.analysis.error'));
       } finally {
         setIsLoading(false);
       }
     };
 
     initializeTransactions();
-  }, [urlUserId, balance, router]);
+  }, [urlUserId, balance, router, t]);
 
   if (isLoading) {
     return (
@@ -150,19 +146,18 @@ export default function Analytics() {
       <div className="p-4">
         <div className={`rounded-lg p-6 ${isLightTheme ? 'bg-white' : 'bg-gray-800'} shadow`}>
           <h1 className={`text-2xl font-bold mb-6 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
-            Analytics
+            {t('analytics.title')}
           </h1>
 
           {transactions.length === 0 ? (
             <p className={`text-center ${isLightTheme ? 'text-gray-600' : 'text-gray-400'}`}>
-              No transactions available for analysis
+              {t('analytics.noTransactions')}
             </p>
           ) : (
             <div className="space-y-6">
-              {/* Financial Health Indicator */}
               <div className={`p-4 rounded-lg ${isLightTheme ? 'bg-gray-50' : 'bg-gray-700'}`}>
                 <h3 className={`text-lg font-semibold mb-4 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
-                  Financial Health
+                  {t('analytics.financialHealth')}
                 </h3>
                 <div className="flex items-start gap-4">
                   <div className={`flex items-center justify-center w-16 h-16 rounded-full ${
@@ -193,25 +188,24 @@ export default function Analytics() {
                       />
                     </div>
                     <p className={`text-sm ${isLightTheme ? 'text-gray-600' : 'text-gray-300'}`}>
-                      {financialHealth.status === 'healthy' ? 'Отличное финансовое состояние' :
-                       financialHealth.status === 'warning' ? 'Требует внимания' :
-                       'Критическое состояние'}
+                      {financialHealth.status === 'healthy' ? t('analytics.healthStatus.excellent') :
+                       financialHealth.status === 'warning' ? t('analytics.healthStatus.warning') :
+                       t('analytics.healthStatus.critical')}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Top Categories */}
               <div className={`p-4 rounded-lg ${isLightTheme ? 'bg-gray-50' : 'bg-gray-700'}`}>
                 <h3 className={`text-lg font-semibold mb-4 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
-                  Top Categories
+                  {t('analytics.topCategories')}
                 </h3>
                 <div className="space-y-3">
                   {topCategories.map((category, index) => (
                     <div key={category.category}>
                       <div className="flex justify-between mb-1">
                         <span className={`text-sm ${isLightTheme ? 'text-gray-600' : 'text-gray-300'}`}>
-                          {category.category}
+                          {t(`categories.${category.category.toLowerCase()}`)}
                         </span>
                         <span className={`text-sm ${isLightTheme ? 'text-gray-600' : 'text-gray-300'}`}>
                           {category.percentage.toFixed(1)}%
@@ -232,26 +226,24 @@ export default function Analytics() {
                 </div>
               </div>
 
-              {/* Financial Overview */}
               <div className={`p-4 rounded-lg ${isLightTheme ? 'bg-gray-50' : 'bg-gray-700'}`}>
                 <h3 className={`text-lg font-semibold mb-2 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
-                  Financial Overview
+                  {t('analytics.financialOverview')}
                 </h3>
                 <div className={`whitespace-pre-wrap font-mono text-sm ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
                   {analysis}
                 </div>
               </div>
 
-              {/* Transaction Summary */}
               <div className={`p-4 rounded-lg ${isLightTheme ? 'bg-gray-50' : 'bg-gray-700'}`}>
                 <h3 className={`text-lg font-semibold mb-2 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
-                  Transaction Summary
+                  {t('analytics.transactionSummary')}
                 </h3>
                 <p className={`${isLightTheme ? 'text-gray-600' : 'text-gray-300'}`}>
-                  Total number of transactions: {transactions.length}
+                  {t('analytics.totalTransactions')}: {transactions.length}
                 </p>
                 <p className={`${isLightTheme ? 'text-gray-600' : 'text-gray-300'}`}>
-                  Last updated: {new Date().toLocaleDateString()}
+                  {t('analytics.lastUpdated')}: {new Date().toLocaleDateString()}
                 </p>
               </div>
             </div>

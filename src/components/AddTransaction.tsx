@@ -3,6 +3,7 @@
 import React from 'react';
 import { useState } from 'react';
 import { useTheme } from '@/context/ThemeContext';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface Category {
   id: string;
@@ -15,7 +16,7 @@ interface Category {
 const expenseCategories: Category[] = [
   { 
     id: 'housing', 
-    name: 'Housing',
+    name: 'housing',
     color: 'bg-[#F471B5]',
     accentColor: 'border-[#F471B5]',
     icon: (
@@ -26,7 +27,7 @@ const expenseCategories: Category[] = [
   },
   { 
     id: 'transport', 
-    name: 'Transport',
+    name: 'transport',
     color: 'bg-[#FB657C]',
     accentColor: 'border-[#FB657C]',
     icon: (
@@ -41,7 +42,7 @@ const expenseCategories: Category[] = [
   },
   { 
     id: 'food', 
-    name: 'Food & Groceries',
+    name: 'food',
     color: 'bg-[#FB923C]',
     accentColor: 'border-[#FB923C]',
     icon: (
@@ -54,7 +55,7 @@ const expenseCategories: Category[] = [
   },
   { 
     id: 'shopping', 
-    name: 'Shopping',
+    name: 'shopping',
     color: 'bg-[#FAC905]',
     accentColor: 'border-[#FAC905]',
     icon: (
@@ -67,7 +68,7 @@ const expenseCategories: Category[] = [
   },
   { 
     id: 'phone', 
-    name: 'Phone & Internet',
+    name: 'phone',
     color: 'bg-[#91D624]',
     accentColor: 'border-[#91D624]',
     icon: (
@@ -79,7 +80,7 @@ const expenseCategories: Category[] = [
   },
   { 
     id: 'travel', 
-    name: 'Travel',
+    name: 'travel',
     color: 'bg-[#30D96E]',
     accentColor: 'border-[#30D96E]',
     icon: (
@@ -90,7 +91,7 @@ const expenseCategories: Category[] = [
   },
   { 
     id: 'health', 
-    name: 'Health & Wellness',
+    name: 'health',
     color: 'bg-[#2BD4BD]',
     accentColor: 'border-[#2BD4BD]',
     icon: (
@@ -101,7 +102,7 @@ const expenseCategories: Category[] = [
   },
   { 
     id: 'entertainment', 
-    name: 'Entertainment',
+    name: 'entertainment',
     color: 'bg-[#10B7D1]',
     accentColor: 'border-[#10B7D1]',
     icon: (
@@ -113,7 +114,7 @@ const expenseCategories: Category[] = [
   },
   { 
     id: 'education', 
-    name: 'Education',
+    name: 'education',
     color: 'bg-[#61A6FA]',
     accentColor: 'border-[#61A6FA]',
     icon: (
@@ -126,7 +127,7 @@ const expenseCategories: Category[] = [
   },
   { 
     id: 'debts', 
-    name: 'Debts & Loans',
+    name: 'debts',
     color: 'bg-[#9876F9]',
     accentColor: 'border-[#9876F9]',
     icon: (
@@ -140,7 +141,7 @@ const expenseCategories: Category[] = [
   },
   { 
     id: 'savings', 
-    name: 'Savings & Investments',
+    name: 'savings',
     color: 'bg-[#A8A29F]',
     accentColor: 'border-[#A8A29F]',
     icon: (
@@ -151,7 +152,7 @@ const expenseCategories: Category[] = [
   },
   { 
     id: 'other', 
-    name: 'Other Expenses',
+    name: 'other',
     color: 'bg-[#929AAA]',
     accentColor: 'border-[#929AAA]',
     icon: (
@@ -167,7 +168,7 @@ const expenseCategories: Category[] = [
 const incomeCategories: Category[] = [
   {
     id: 'salary',
-    name: 'Salary',
+    name: 'salary',
     color: 'bg-[#F471B5]',
     accentColor: 'border-[#F471B5]',
     icon: (
@@ -179,7 +180,7 @@ const incomeCategories: Category[] = [
   },
   {
     id: 'business',
-    name: 'Business & Freelance',
+    name: 'business',
     color: 'bg-[#FB657C]',
     accentColor: 'border-[#FB657C]',
     icon: (
@@ -192,7 +193,7 @@ const incomeCategories: Category[] = [
   },
   {
     id: 'gifts',
-    name: 'Gifts',
+    name: 'gifts',
     color: 'bg-[#FB923C]',
     accentColor: 'border-[#FB923C]',
     icon: (
@@ -207,7 +208,7 @@ const incomeCategories: Category[] = [
   },
   {
     id: 'debt',
-    name: 'Debt Repayment',
+    name: 'debt',
     color: 'bg-[#8B5CF6]',
     accentColor: 'border-[#8B5CF6]',
     icon: (
@@ -221,7 +222,7 @@ const incomeCategories: Category[] = [
   },
   {
     id: 'investment',
-    name: 'Investment Income',
+    name: 'investment',
     color: 'bg-[#A8A29F]',
     accentColor: 'border-[#A8A29F]',
     icon: (
@@ -234,7 +235,7 @@ const incomeCategories: Category[] = [
   },
   {
     id: 'other',
-    name: 'Other Incomes',
+    name: 'other',
     color: 'bg-[#929AAA]',
     accentColor: 'border-[#929AAA]',
     icon: (
@@ -259,6 +260,7 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
   const [amount, setAmount] = useState('');
   const [isExpense, setIsExpense] = useState(true);
   const { isLightTheme } = useTheme();
+  const { t } = useTranslation();
 
   const handleCategorySelect = (category: Category) => {
     setSelectedCategory(category);
@@ -270,7 +272,7 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
     // Extract the hex color from the Tailwind class (removing 'bg-[' and ']')
     const color = selectedCategory.color.slice(4, -1);
     onAddTransaction(
-      selectedCategory.name,
+      selectedCategory.id,
       isExpense ? -Math.abs(parseFloat(amount)) : Math.abs(parseFloat(amount)),
       color
     );
@@ -305,7 +307,7 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
                 isExpense ? 'bg-[#8B5CF6] text-white' : 'text-gray-500'
               }`}
             >
-              Expenses
+              {t('home.expenses')}
             </button>
             <button 
               onClick={() => setIsExpense(false)}
@@ -313,7 +315,7 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
                 !isExpense ? 'bg-[#8B5CF6] text-white' : 'text-gray-500'
               }`}
             >
-              Income
+              {t('home.income')}
             </button>
           </div>
           
@@ -328,7 +330,9 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
                   <div className={`w-10 h-10 ${category.color} rounded-xl flex items-center justify-center mr-3`}>
                     {category.icon}
                   </div>
-                  <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'} font-medium`}>{category.name}</span>
+                  <span className={`${isLightTheme ? 'text-gray-900' : 'text-white'} font-medium`}>
+                    {t(`categories.${category.name}`)}
+                  </span>
                 </div>
                 <div className={`w-6 h-6 rounded-full border-2 ${
                   selectedCategory?.id === category.id 
@@ -345,7 +349,7 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
               selectedCategory ? 'bg-[#8B5CF6] text-white' : 'bg-gray-100 text-gray-400'
             }`}
           >
-            Next
+            {t('common.next')}
           </button>
         </div>
       </div>
@@ -384,7 +388,7 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
               amount ? 'bg-[#8B5CF6] text-white' : 'bg-gray-100 text-gray-400'
             }`}
           >
-            Next
+            {t('common.next')}
           </button>
         </div>
       </div>

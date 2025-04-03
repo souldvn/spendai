@@ -32,6 +32,7 @@ function ErrorContent() {
         </div>
       </div>
       <BottomNav />
+
     </div>
   );
 }
