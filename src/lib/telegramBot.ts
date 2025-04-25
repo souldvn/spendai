@@ -1,6 +1,6 @@
 import { Telegraf } from 'telegraf';
 
-const token = process.env.BOT_TOKEN!;
+const token = process.env.TELEGRAM_BOT_TOKEN!;
 if (!token) throw new Error('Bot token is required');
 
 const bot = new Telegraf(token);
