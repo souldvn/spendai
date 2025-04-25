@@ -1,5 +1,5 @@
 'use client';
-
+import { Suspense } from 'react';
 import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { AddTransaction } from '@/components/AddTransaction';
@@ -354,9 +354,9 @@ const HomeContentWithSuspense = () => {
   const { t } = useTranslation();
   
   return (
-    <div>
+    <Suspense fallback={<div>Loading...</div>}>
       <HomeContent />
-    </div>
+    </Suspense>
   );
 };
 
