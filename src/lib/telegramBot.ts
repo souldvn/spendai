@@ -5,10 +5,7 @@ if (!token) throw new Error('Bot token is required');
 
 const bot = new Telegraf(token);
 
-// Запуск логов
-console.log('Initializing bot...');
-
-// /start
+// Команды
 bot.start((ctx) => {
   const webAppUrl = 'https://smartspendai.netlify.app';
   ctx.reply(
@@ -16,85 +13,51 @@ bot.start((ctx) => {
     {
       reply_markup: {
         inline_keyboard: [
-          [
-            {
-              text: 'Открыть приложение',
-              web_app: { url: webAppUrl }
-            }
-          ]
+          [{ text: 'Открыть приложение', web_app: { url: webAppUrl } }]
         ]
       }
     }
   );
-  console.log('/start from:', ctx.from?.username, 'chatId:', ctx.chat?.id);
 });
 
-// /help
 bot.command('help', (ctx) => {
-  const helpMessage = `
+  ctx.reply(`
 Доступные команды:
-/start - Начать работу с ботом
-/help - Показать список команд
-/balance - Показать текущий баланс
-/transactions - Показать последние транзакции
-/report - Получить ежедневный отчет
-  `;
-  ctx.reply(helpMessage);
-  console.log('/help from:', ctx.from?.username, 'chatId:', ctx.chat?.id);
+/start - Начать
+/help - Помощь
+/balance - Баланс
+/transactions - Транзакции
+/report - Отчет
+  `);
 });
 
-// /balance
-bot.command('balance', (ctx) => {
-  ctx.reply('Баланс: 0 ₽');
-  console.log('/balance from:', ctx.from?.username, 'chatId:', ctx.chat?.id);
-});
+bot.command('balance', (ctx) => ctx.reply('Баланс: 0 ₽'));
 
-// /transactions
-bot.command('transactions', (ctx) => {
-  ctx.reply('Последние транзакции:\nНет транзакций');
-  console.log('/transactions from:', ctx.from?.username, 'chatId:', ctx.chat?.id);
-});
+bot.command('transactions', (ctx) => ctx.reply('Последние транзакции:\nНет транзакций'));
 
-// /report
 bot.command('report', async (ctx) => {
   const userId = ctx.from?.id;
-  const chatId = ctx.chat?.id;
-
-  if (!userId || !chatId) {
-    ctx.reply('Не удалось получить ваш ID. Попробуйте снова.');
-    return;
-  }
+  if (!userId) return ctx.reply('Не удалось получить ваш ID.');
 
   try {
     const report = await generateDailyReportForUser(userId);
     await ctx.reply(report);
-    console.log('Report sent to', userId);
-  } catch (error) {
-    console.error('Error generating report:', error);
-    ctx.reply('Произошла ошибка при генерации отчета. Попробуйте позже.');
+  } catch (err) {
+    console.error('Ошибка при генерации отчета:', err);
+    ctx.reply('Произошла ошибка при генерации отчета.');
   }
 });
 
-// Получение любых сообщений
 bot.on('message', (ctx) => {
-  const message = ctx.message;
-  if ('text' in message) {
-    console.log('Message from:', ctx.from?.username, 'text:', message.text);
-  } else {
-    console.log('Received non-text message from:', ctx.from?.username);
+  if ('text' in ctx.message) {
+    console.log('Message:', ctx.message.text);
   }
 });
 
-// Генерация отчета (пример)
+// Функция генерации отчета
 async function generateDailyReportForUser(userId: number) {
   return `Отчет для пользователя ${userId}:\nДоход: 1000 ₽\nРасход: 500 ₽`;
 }
 
-
-const WEBHOOK_URL = 'https://smartspendai.netlify.app/.netlify/functions/telegram';
-
-bot.telegram.setWebhook(WEBHOOK_URL)
-  .then(() => console.log('Webhook установлен:', WEBHOOK_URL))
-  .catch((err) => console.error('Ошибка установки webhook:', err));
-
+// 👇 Вот это главное:
 export { bot };
