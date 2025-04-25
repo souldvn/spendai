@@ -21,6 +21,12 @@ export interface UserBalance {
   lastUpdated: Date;
 }
 
+export interface UserSettings {
+  userId: string;
+  defaultCurrency: 'USD' | 'RUB';
+  lastUpdated: Date;
+}
+
 export async function getUserTransactions(userId: string): Promise<Transaction[]> {
   try {
     if (!userId) {
@@ -149,6 +155,7 @@ export async function getUserBalance(userId: string): Promise<number> {
     const userBalanceDoc = await getDoc(userBalanceRef);
     
     if (userBalanceDoc.exists()) {
+      // The balance is stored in USD
       return userBalanceDoc.data().balance;
     }
     
@@ -156,7 +163,7 @@ export async function getUserBalance(userId: string): Promise<number> {
     const transactions = await getUserTransactions(userId);
     const calculatedBalance = transactions.reduce((sum, t) => sum + t.amount, 0);
     
-    // Save calculated balance
+    // Save calculated balance in USD
     await setDoc(userBalanceRef, {
       userId,
       balance: calculatedBalance,
@@ -174,9 +181,11 @@ export async function getUserBalance(userId: string): Promise<number> {
 export async function updateUserBalance(userId: string, newBalance: number): Promise<void> {
   try {
     const userBalanceRef = doc(db, 'userBalances', userId);
+    // Ensure the balance is stored in USD
+    const balanceInUSD = newBalance;
     await setDoc(userBalanceRef, {
       userId,
-      balance: newBalance,
+      balance: balanceInUSD,
       lastUpdated: new Date()
     });
   } catch (error) {
@@ -191,6 +200,38 @@ export async function updateBalanceOnTransaction(userId: string, amount: number)
     await updateUserBalance(userId, currentBalance + amount);
   } catch (error) {
     console.error('Error updating balance on transaction:', error);
+  }
+}
+
+export async function getUserSettings(userId: string): Promise<UserSettings | null> {
+  try {
+    const settingsRef = doc(db, 'userSettings', userId);
+    const settingsDoc = await getDoc(settingsRef);
+    
+    if (settingsDoc.exists()) {
+      return {
+        userId,
+        defaultCurrency: settingsDoc.data().defaultCurrency || 'USD',
+        lastUpdated: settingsDoc.data().lastUpdated?.toDate() || new Date()
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting user settings:', error);
+    return null;
+  }
+}
+
+export async function updateUserSettings(userId: string, settings: Partial<UserSettings>): Promise<void> {
+  try {
+    const settingsRef = doc(db, 'userSettings', userId);
+    await setDoc(settingsRef, {
+      ...settings,
+      lastUpdated: new Date()
+    }, { merge: true });
+  } catch (error) {
+    console.error('Error updating user settings:', error);
+    throw error;
   }
 }
 

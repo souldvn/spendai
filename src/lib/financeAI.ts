@@ -1,3 +1,6 @@
+import { Transaction } from '@/types';
+import { useTranslation } from '@/hooks/useTranslation';
+
 type TFunction = (key: string, params?: Record<string, string>) => string;
 
 interface FinancialAnalysis {
@@ -5,7 +8,8 @@ interface FinancialAnalysis {
   totalExpenses: number;
   expensesByCategory: { category: string; amount: number }[];
   currentBalance: number;
-  t: TFunction;
+  currencySymbol: string;
+  t: (key: string) => string;
 }
 
 function getRecommendationsByCategory(category: string, amount: number, totalExpenses: number, t: TFunction): string | null {
@@ -21,51 +25,90 @@ function getRecommendationsByCategory(category: string, amount: number, totalExp
   return null;
 }
 
-export function analyzeFinances(data: FinancialAnalysis): string {
-  const { totalIncome, totalExpenses, expensesByCategory, currentBalance, t } = data;
-  
-  let analysis = `${t('analytics.analysis.overview')}:\n\n`;
-  
-  // Basic overview
-  analysis += `${t('analytics.analysis.income')}: $${totalIncome.toLocaleString()}\n`;
-  analysis += `${t('analytics.analysis.expenses')}: $${totalExpenses.toLocaleString()}\n`;
-  analysis += `${currentBalance >= 0 ? '✅' : '⚠️'} ${t('analytics.analysis.balance')}: $${currentBalance.toLocaleString()}\n\n`;
-  
-  // Expenses by category
-  analysis += `${t('analytics.analysis.expensesByCategory')}:\n`;
-  expensesByCategory
+export function analyzeFinances({ 
+  totalIncome, 
+  totalExpenses, 
+  expensesByCategory, 
+  currentBalance,
+  currencySymbol,
+  t 
+}: FinancialAnalysis): string {
+  const savings = totalIncome - totalExpenses;
+  const savingsPercentage = totalIncome > 0 ? (savings / totalIncome) * 100 : 0;
+  const expenseRatio = totalIncome > 0 ? (totalExpenses / totalIncome) * 100 : 0;
+
+  // Find top spending categories
+  const sortedCategories = expensesByCategory
     .sort((a, b) => b.amount - a.amount)
-    .forEach(({ category, amount }) => {
-      const percentage = (amount / totalExpenses * 100).toFixed(1);
-      analysis += `${t(`categories.${category}`)}: $${amount.toLocaleString()} (${percentage}%)\n`;
-    });
-  
-  // Recommendations
-  analysis += `\n${t('analytics.analysis.recommendations')}:\n`;
-  
-  // Balance recommendations
-  if (currentBalance < 0) {
-    analysis += `• ⚠️ ${t('analytics.analysis.balanceNegative')}\n`;
-  } else if (currentBalance < totalIncome * 0.2) {
-    analysis += `• ⚠️ ${t('analytics.analysis.balanceLow')}\n`;
-  } else if (currentBalance > totalIncome * 0.5) {
-    analysis += `• 💰 ${t('analytics.analysis.balanceGood')}\n`;
+    .slice(0, 3);
+
+  let analysis = `📊 ${t('analytics.analysis.overview')}\n\n`;
+  analysis += `💰 ${t('analytics.analysis.income')}: ${currencySymbol}${totalIncome.toFixed(2)}\n`;
+  analysis += `💸 ${t('analytics.analysis.expenses')}: ${currencySymbol}${totalExpenses.toFixed(2)}\n`;
+  analysis += `⚖️ ${t('analytics.analysis.balance')}: ${currencySymbol}${savings.toFixed(2)} (${savingsPercentage.toFixed(1)}%)\n\n`;
+
+  // Personalized analysis based on financial situation
+  if (totalIncome === 0) {
+    analysis += `🤔 ${t('analytics.analysis.noIncome')}\n`;
+  } else if (savingsPercentage < 0) {
+    analysis += `⚠️ ${t('analytics.analysis.negativeSavings')}\n`;
+  } else if (savingsPercentage < 20) {
+    analysis += `💡 ${t('analytics.analysis.lowSavings')}\n`;
+  } else {
+    analysis += `✅ ${t('analytics.analysis.goodSavings')}\n`;
   }
 
-  // Category-specific recommendations
-  expensesByCategory.forEach(({ category, amount }) => {
-    const recommendation = getRecommendationsByCategory(category, amount, totalExpenses, t);
-    if (recommendation) {
-      analysis += recommendation + "\n";
+  // Expense analysis with personalized recommendations
+  analysis += `\n📈 ${t('analytics.analysis.expensesByCategory')}:\n`;
+  const topCategory = sortedCategories[0];
+  if (topCategory) {
+    const topCategoryPercentage = (topCategory.amount / totalExpenses) * 100;
+    if (topCategoryPercentage > 50) {
+      analysis += `⚠️ ${t('analytics.analysis.highCategorySpending').replace('{category}', t(`categories.${topCategory.category}`))}\n`;
     }
-  });
+  }
 
-  // General recommendations
-  if (totalExpenses > 0) {
-    analysis += `\n🎯 ${t('analytics.analysis.generalRecommendations')}:\n`;
-    analysis += `• ${t('analytics.analysis.createBudget')}\n`;
-    analysis += `• ${t('analytics.analysis.savePercentage')}\n`;
-    analysis += `• ${t('analytics.analysis.trackExpenses')}\n`;
+  // Detailed category analysis
+  if (sortedCategories.length > 0) {
+    analysis += `\n🎯 ${t('analytics.analysis.recommendations')}:\n`;
+    sortedCategories.forEach((category, index) => {
+      const percentage = (category.amount / totalExpenses) * 100;
+      const translatedCategory = t(`categories.${category.category}`);
+      const categoryInfo = `${translatedCategory} (${currencySymbol}${category.amount.toFixed(2)} - ${percentage.toFixed(1)}%)`;
+      
+      let recommendation = '';
+      if (percentage > 50) {
+        recommendation = t('analytics.analysis.categoryHighSpending').replace('{category}', categoryInfo);
+      } else if (percentage > 30) {
+        recommendation = t('analytics.analysis.categoryModerateSpending').replace('{category}', categoryInfo);
+      } else {
+        recommendation = t('analytics.analysis.categoryLowSpending').replace('{category}', categoryInfo);
+      }
+      
+      analysis += `• ${recommendation}\n`;
+    });
+  }
+
+  // Balance analysis with personalized messages
+  analysis += `\n💼 ${t('analytics.analysis.balance')}: ${currencySymbol}${currentBalance.toFixed(2)}\n`;
+  if (currentBalance < 0) {
+    analysis += `\n⚠️ ${t('analytics.analysis.balanceNegative')}\n`;
+    analysis += `💡 ${t('analytics.analysis.balanceNegativeAdvice')}\n`;
+  } else if (currentBalance < totalExpenses) {
+    analysis += `\n⚠️ ${t('analytics.analysis.balanceLow')}\n`;
+    analysis += `💡 ${t('analytics.analysis.balanceLowAdvice')}\n`;
+  } else if (currentBalance >= totalExpenses * 3) {
+    analysis += `\n✅ ${t('analytics.analysis.balanceGood')}\n`;
+    analysis += `💡 ${t('analytics.analysis.balanceGoodAdvice')}\n`;
+  }
+
+  // Add final personalized message
+  if (savingsPercentage < 0) {
+    analysis += `\n🎯 ${t('analytics.analysis.immediateAction')}\n`;
+  } else if (savingsPercentage < 20) {
+    analysis += `\n🎯 ${t('analytics.analysis.improvementNeeded')}\n`;
+  } else {
+    analysis += `\n🎯 ${t('analytics.analysis.keepGoing')}\n`;
   }
 
   return analysis;

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getUserBalance, updateUserBalance } from '@/firebaseConfig';
+import { useCurrency } from '@/context/CurrencyContext';
 
 interface BalanceContextType {
   balance: number;
@@ -15,6 +16,7 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
   const [balance, setBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const { currency, exchangeRates } = useCurrency();
 
   // Get userId from localStorage
   useEffect(() => {
@@ -31,6 +33,8 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
       
       try {
         const userBalance = await getUserBalance(userId);
+        // Store the balance in USD (base currency)
+        console.log('Loading balance in USD:', userBalance);
         setBalance(userBalance);
       } catch (error) {
         console.error('Error loading balance:', error);
@@ -47,6 +51,8 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
     if (!userId) return;
     
     try {
+      // The balance is already in USD, no need to convert
+      console.log('Setting balance in USD:', newBalance);
       await updateUserBalance(userId, newBalance);
       setBalance(newBalance);
     } catch (error) {

@@ -11,6 +11,7 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { getUserTransactions, updateTransaction, deleteTransaction } from '@/firebaseConfig';
 import type { Transaction } from '@/types';
+import { useCurrency } from '@/context/CurrencyContext';
 
 function HistoryContent() {
   const searchParams = useSearchParams();
@@ -18,6 +19,7 @@ function HistoryContent() {
   const { balance, setBalance } = useBalance();
   const { isLightTheme } = useTheme();
   const { t } = useTranslation();
+  const { convertAmount, getCurrencySymbol } = useCurrency();
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -285,7 +287,7 @@ function HistoryContent() {
                     <p className={`font-semibold ${
                       transaction.amount < 0 ? 'text-red-500' : 'text-green-500'
                     } ${isLightTheme ? 'text-gray-800' : 'text-gray-400'}`}>
-                      {transaction.amount < 0 ? '-' : '+'}${Math.abs(transaction.amount).toLocaleString()}
+                      {transaction.amount < 0 ? '-' : '+'}{getCurrencySymbol()}{convertAmount(Math.abs(transaction.amount)).toFixed(2)}
                     </p>
                   </div>
                 ))}

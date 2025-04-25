@@ -4,6 +4,7 @@ import React from 'react';
 import { useState } from 'react';
 import { useTheme } from '@/context/ThemeContext';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useCurrency } from '@/context/CurrencyContext';
 
 interface Category {
   id: string;
@@ -261,6 +262,7 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
   const [isExpense, setIsExpense] = useState(true);
   const { isLightTheme } = useTheme();
   const { t } = useTranslation();
+  const { currency, convertToUSD } = useCurrency();
 
   const handleCategorySelect = (category: Category) => {
     setSelectedCategory(category);
@@ -271,9 +273,15 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
     if (!selectedCategory || !amount) return;
     // Extract the hex color from the Tailwind class (removing 'bg-[' and ']')
     const color = selectedCategory.color.slice(4, -1);
+    
+    // Convert the amount to USD before saving
+    const amountInUSD = convertToUSD(parseFloat(amount));
+    console.log('Converting amount:', amount, currency, 'to USD:', amountInUSD);
+    
+    // Pass the amount in USD to the parent component
     onAddTransaction(
       selectedCategory.id,
-      isExpense ? -Math.abs(parseFloat(amount)) : Math.abs(parseFloat(amount)),
+      isExpense ? -Math.abs(amountInUSD) : Math.abs(amountInUSD),
       color
     );
     onClose();

@@ -7,6 +7,7 @@ import BottomNav from '@/components/BottomNav';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { useBalance } from '@/context/BalanceContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { analyzeFinances } from '@/lib/financeAI';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -16,6 +17,7 @@ export default function Analytics() {
   const urlUserId = searchParams.get('userId');
   const { isLightTheme } = useTheme();
   const { balance } = useBalance();
+  const { convertAmount, getCurrencySymbol } = useCurrency();
   const { t } = useTranslation();
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -52,22 +54,22 @@ export default function Analytics() {
         
         const totalExpenses = userTransactions
           .filter((t: Transaction) => t.amount < 0)
-          .reduce((sum: number, t: Transaction) => sum + Math.abs(t.amount), 0);
+          .reduce((sum: number, t: Transaction) => sum + Math.abs(convertAmount(t.amount)), 0);
         
         const totalIncome = userTransactions
           .filter((t: Transaction) => t.amount > 0)
-          .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+          .reduce((sum: number, t: Transaction) => sum + convertAmount(t.amount), 0);
 
         const expensesByCategory = userTransactions
           .filter((t: Transaction) => t.amount < 0)
           .reduce((acc: { category: string; amount: number }[], t: Transaction) => {
             const existing = acc.find(e => e.category === t.category);
             if (existing) {
-              existing.amount += Math.abs(t.amount);
+              existing.amount += Math.abs(convertAmount(t.amount));
             } else {
               acc.push({
                 category: t.category,
-                amount: Math.abs(t.amount)
+                amount: Math.abs(convertAmount(t.amount))
               });
             }
             return acc;
@@ -89,7 +91,7 @@ export default function Analytics() {
         let healthStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
         let healthMessage = '';
 
-        const balanceCoverageMonths = totalExpenses > 0 ? balance / totalExpenses : 0;
+        const balanceCoverageMonths = totalExpenses > 0 ? convertAmount(balance) / totalExpenses : 0;
 
         if (expenseRatio > 1) {
           healthScore = 60;
@@ -117,7 +119,8 @@ export default function Analytics() {
           totalIncome,
           totalExpenses,
           expensesByCategory,
-          currentBalance: balance,
+          currentBalance: convertAmount(balance),
+          currencySymbol: getCurrencySymbol(),
           t
         });
 
@@ -131,7 +134,7 @@ export default function Analytics() {
     };
 
     initializeTransactions();
-  }, [urlUserId, balance, router, t]);
+  }, [urlUserId, balance, router, t, convertAmount, getCurrencySymbol]);
 
   if (isLoading) {
     return (

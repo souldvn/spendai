@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { AddTransaction } from '@/components/AddTransaction';
 import EditTransactionModal from '@/components/EditTransactionModal';
 import { EditBalanceModal } from '@/components/EditBalanceModal';
@@ -13,6 +14,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useBalance } from '@/context/BalanceContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useCurrency } from '@/context/CurrencyContext';
 
 const barChartData = [
   { name: 'Пн', amount: 45000 },
@@ -31,6 +33,7 @@ function HomeContent() {
   const { balance, setBalance, isLoading: isBalanceLoading } = useBalance();
   const { isLightTheme } = useTheme();
   const { t } = useTranslation();
+  const { convertAmount, getCurrencySymbol } = useCurrency();
   
   const [activeChart, setActiveChart] = useState<'pie' | 'bar'>('pie');
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
@@ -141,7 +144,7 @@ function HomeContent() {
     .filter(transaction => transaction.amount < 0) // Only include expenses
     .reduce((acc: { name: string; amount: number; color: string }[], transaction) => {
       const date = new Date(transaction.date);
-      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase();
       const existing = acc.find(d => d.name === dayName);
       if (existing) {
         existing.amount += Math.abs(transaction.amount);
@@ -157,9 +160,12 @@ function HomeContent() {
 
   // Sort by day of week
   const sortedTransactionsByDate = transactionsByDate.sort((a: { name: string }, b: { name: string }) => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
     return days.indexOf(a.name) - days.indexOf(b.name);
-  });
+  }).map(day => ({
+    ...day,
+    name: t(`weekdays.${day.name}`)
+  }));
 
   const handleEditBalance = (newBalance: number) => {
     setBalance(newBalance);
@@ -230,7 +236,7 @@ function HomeContent() {
                 </button>
               </div>
               <p className={`text-2xl font-bold ${balance < 0 ? 'text-red-500' : isLightTheme ? 'text-gray-900' : 'text-white'}`}>
-                ${balance.toLocaleString()}
+                {getCurrencySymbol()}{convertAmount(balance).toFixed(2)}
               </p>
             </div>
             <div className="flex gap-2">
@@ -290,14 +296,17 @@ function HomeContent() {
                       </span>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{t(`categories.${transaction.category}`)}</p>
+                      <p className={`font-medium ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
+                        {t(`categories.${transaction.category}`)}
+                      </p>
                       <p className="text-sm text-gray-500">
                         {transaction.date.toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                   <p className={`font-semibold ${transaction.amount < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                    {transaction.amount < 0 ? '-' : '+'}${Math.abs(transaction.amount).toLocaleString()}
+                    {transaction.amount < 0 ? '-' : '+'}
+                    {getCurrencySymbol()}{convertAmount(Math.abs(transaction.amount)).toFixed(2)}
                   </p>
                 </div>
               ))
@@ -331,26 +340,24 @@ function HomeContent() {
           isOpen={isEditBalanceOpen}
           onClose={() => setIsEditBalanceOpen(false)}
           currentBalance={balance}
-          onSave={handleEditBalance}
+          onSave={setBalance}
+          transactions={transactions}
         />
       )}
     </main>
   );
 }
 
-export default function Home() {
+// Wrap the component that uses Suspense
+const HomeContentWithSuspense = () => {
   const { isLightTheme } = useTheme();
   const { t } = useTranslation();
+  
   return (
-    <Suspense fallback={
-      <div className={`min-h-screen flex items-center justify-center ${isLightTheme ? 'bg-white' : 'bg-gray-900'}`}>
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#8B5CF6] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className={`text-lg font-medium ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>{t('common.loading')}</p>
-        </div>
-      </div>
-    }>
+    <div>
       <HomeContent />
-    </Suspense>
+    </div>
   );
-}
+};
+
+export default HomeContentWithSuspense;
