@@ -1,6 +1,6 @@
-import { Telegraf, Context } from 'telegraf';
+import { Telegraf } from 'telegraf';
 
-const token = '7770234898:AAG4_N1_M5gnSY-U9fBWfPtFr6FLRIfM7wM';
+const token = process.env.BOT_TOKEN!;
 if (!token) throw new Error('Bot token is required');
 
 const bot = new Telegraf(token);
@@ -85,19 +85,16 @@ bot.on('message', (ctx) => {
   }
 });
 
-
 // Генерация отчета (пример)
 async function generateDailyReportForUser(userId: number) {
   return `Отчет для пользователя ${userId}:\nДоход: 1000 ₽\nРасход: 500 ₽`;
 }
 
-// Запуск (если без webhook)
-bot.launch().then(() => {
-  console.log('Telegram bot started with Telegraf!');
-});
 
-// Обработка ошибок
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+const WEBHOOK_URL = 'https://smartspendai.netlify.app/.netlify/functions/telegram';
+
+bot.telegram.setWebhook(WEBHOOK_URL)
+  .then(() => console.log('Webhook установлен:', WEBHOOK_URL))
+  .catch((err) => console.error('Ошибка установки webhook:', err));
 
 export { bot };
