@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { bot } from '../../netlify/functions/telegramBot';
+import { bot } from './telegramBot';
 
 // Schedule daily reports at 9:00 AM
 cron.schedule('0 9 * * *', () => {
