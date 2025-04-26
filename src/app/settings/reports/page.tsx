@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
@@ -7,8 +8,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { getUserReportsSettings, updateUserReportsSettings, UserReportsSettings } from '../../../firebaseConfig';
 
-
-export default function ReportManagement() {
+const ReportManagementContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const userId = searchParams.get('userId');
@@ -104,4 +104,13 @@ export default function ReportManagement() {
       <BottomNav />
     </div>
   );
+};
+
+export default function ReportManagement() {
+  return (
+    <Suspense fallback={<div>Загрузка...</div>}>
+      <ReportManagementContent />
+    </Suspense>
+  );
 }
+
