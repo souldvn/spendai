@@ -1,21 +1,21 @@
 'use client';
 
-import { Suspense } from 'react';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import { useTheme } from '@/context/ThemeContext';
 import { useTranslation } from '@/hooks/useTranslation';
-import { getUserReportsSettings, updateUserReportsSettings, UserReportsSettings } from '../../../firebaseConfig';
+import { getUserReportsSettings, updateUserReportsSettings } from '../../../firebaseConfig';
 
 const ReportManagementContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const userId = searchParams.get('userId');
+  const urlUserId = searchParams.get('userId');
 
   const { isLightTheme } = useTheme();
   const { t } = useTranslation();
 
+  const [userId, setUserId] = useState<string | null>(null);
   const [reports, setReports] = useState({
     daily: false,
     weekly: false,
@@ -23,30 +23,80 @@ const ReportManagementContent = () => {
     optimization: false,
   });
 
+  // Определяем userId один раз
+  useEffect(() => {
+    const initializeUserId = () => {
+      const isLocalhost = window.location.hostname === 'localhost';
+      let id = isLocalhost ? 'test-user-123' : urlUserId;
+
+      console.log('[initializeUserId] Step 1 - initial id:', id);
+
+      if (!id) {
+        id = localStorage.getItem('userId');
+        console.log('[initializeUserId] Step 2 - from localStorage:', id);
+      }
+
+      if (!id) {
+        console.log('[initializeUserId] Step 3 - userId not found, redirecting to error page');
+        router.push('/error?message=Please open this app from Telegram');
+        return;
+      }
+
+      if (!localStorage.getItem('userId')) {
+        localStorage.setItem('userId', id);
+        console.log('[initializeUserId] Step 4 - saving userId to localStorage:', id);
+      }
+
+      console.log('[initializeUserId] Step 5 - setting userId in state:', id);
+      setUserId(id);
+    };
+
+    initializeUserId();
+  }, [urlUserId, router]);
+
   // Загружаем текущие настройки из Firestore
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      console.log('[fetchSettings] userId is null, skipping fetch');
+      return;
+    }
 
     const fetchSettings = async () => {
+      console.log('[fetchSettings] Fetching settings for userId:', userId);
       const settings = await getUserReportsSettings(userId);
       if (settings) {
+        console.log('[fetchSettings] Settings fetched:', settings);
         setReports(settings);
+      } else {
+        console.log('[fetchSettings] No settings found, using default');
       }
     };
 
     fetchSettings();
   }, [userId]);
 
-  // Обновляем Firestore при каждом изменении toggle
+  // Обновляем Firestore при изменении тумблеров
   const handleToggle = async (reportType: keyof typeof reports) => {
+    if (!userId) {
+      console.log('[handleToggle] userId is null, cannot update');
+      return;
+    }
+
+    console.log('[handleToggle] Toggling report:', reportType);
+
     const updated = {
       ...reports,
       [reportType]: !reports[reportType],
     };
+    console.log('[handleToggle] Updated reports state:', updated);
+
     setReports(updated);
 
-    if (userId) {
+    try {
       await updateUserReportsSettings(userId, updated);
+      console.log('[handleToggle] Successfully updated Firestore');
+    } catch (error) {
+      console.error('[handleToggle] Error updating Firestore:', error);
     }
   };
 
@@ -113,4 +163,3 @@ export default function ReportManagement() {
     </Suspense>
   );
 }
-
