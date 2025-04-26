@@ -1,7 +1,21 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc, getDoc, setDoc } from 'firebase/firestore';
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  doc,
+  updateDoc,
+  deleteDoc,
+  getDoc,
+  setDoc
+} from 'firebase/firestore';
 import { Transaction } from '@/types';
 
+// Firebase config
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -15,50 +29,95 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Types
+export interface UserReportsSettings {
+  daily: boolean;
+  weekly: boolean;
+  monthly: boolean;
+  optimization: boolean;
+}
+
+export interface UserSettings {
+  userId: string;
+  defaultCurrency: 'USD' | 'RUB';
+  reports?: UserReportsSettings;
+  lastUpdated: Date;
+}
+
 export interface UserBalance {
   userId: string;
   balance: number;
   lastUpdated: Date;
 }
 
-export interface UserSettings {
-  userId: string;
-  defaultCurrency: 'USD' | 'RUB';
-  lastUpdated: Date;
+// User settings
+export async function getUserSettings(userId: string): Promise<UserSettings | null> {
+  try {
+    const settingsRef = doc(db, 'userSettings', userId);
+    const settingsDoc = await getDoc(settingsRef);
+
+    if (settingsDoc.exists()) {
+      const data = settingsDoc.data();
+      return {
+        userId,
+        defaultCurrency: data.defaultCurrency || 'USD',
+        reports: data.reports || {
+          daily: false,
+          weekly: false,
+          monthly: false,
+          optimization: false
+        },
+        lastUpdated: data.lastUpdated?.toDate() || new Date()
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting user settings:', error);
+    return null;
+  }
 }
 
+export async function updateUserSettings(userId: string, data: Partial<UserSettings>): Promise<void> {
+  try {
+    const settingsRef = doc(db, 'userSettings', userId);
+    await setDoc(settingsRef, {
+      ...data,
+      userId,
+      lastUpdated: new Date()
+    }, { merge: true });
+  } catch (error) {
+    console.error('Error updating user settings:', error);
+  }
+}
+
+export async function getUserReportsSettings(userId: string): Promise<UserReportsSettings | null> {
+  const settings = await getUserSettings(userId);
+  return settings?.reports || null;
+}
+
+export async function updateUserReportsSettings(userId: string, reports: UserReportsSettings): Promise<void> {
+  await updateUserSettings(userId, { reports });
+}
+
+// Transactions
 export async function getUserTransactions(userId: string): Promise<Transaction[]> {
   try {
-    if (!userId) {
-      console.error('No userId provided');
-      return [];
-    }
+    if (!userId) return [];
 
-    console.log('Fetching transactions for userId:', userId);
     const q = query(
       collection(db, 'transactions'),
       where('userId', '==', userId),
       orderBy('date', 'desc')
     );
-    
+
     const querySnapshot = await getDocs(q);
-    console.log('Found transactions:', querySnapshot.size);
-    
+
     const transactions = querySnapshot.docs.map(doc => {
       const data = doc.data();
-      console.log('Transaction data:', data);
-      
-      // Handle date conversion
+
       let transactionDate = new Date();
-      if (data.date) {
-        if (data.date.toDate) {
-          transactionDate = data.date.toDate();
-        } else if (data.date instanceof Date) {
-          transactionDate = data.date;
-        } else if (typeof data.date === 'string') {
-          transactionDate = new Date(data.date);
-        }
-      }
+      if (data.date?.toDate) transactionDate = data.date.toDate();
+      else if (typeof data.date === 'string') transactionDate = new Date(data.date);
 
       return {
         id: doc.id,
@@ -70,8 +129,7 @@ export async function getUserTransactions(userId: string): Promise<Transaction[]
         date: transactionDate
       };
     });
-    
-    console.log('Processed transactions:', transactions);
+
     return transactions;
   } catch (error) {
     console.error('Error getting transactions:', error);
@@ -81,17 +139,12 @@ export async function getUserTransactions(userId: string): Promise<Transaction[]
 
 export async function addTransaction(userId: string, amount: number, category: string, color: string): Promise<void> {
   try {
-    if (!userId) {
-      console.error('No userId provided');
-      return;
-    }
-
     const transaction: Omit<Transaction, 'id'> = {
       userId,
-      amount: Number(amount),
-      type: Number(amount) >= 0 ? 'income' : 'expense',
-      category: category || 'Uncategorized',
-      color: color || '#8B5CF6',
+      amount,
+      type: amount >= 0 ? 'income' : 'expense',
+      category,
+      color,
       date: new Date()
     };
 
@@ -99,7 +152,6 @@ export async function addTransaction(userId: string, amount: number, category: s
     await updateBalanceOnTransaction(userId, amount);
   } catch (error) {
     console.error('Error adding transaction:', error);
-    throw error;
   }
 }
 
@@ -107,10 +159,8 @@ export async function updateTransaction(transactionId: string, newAmount: number
   try {
     const transactionRef = doc(db, 'transactions', transactionId);
     const transactionDoc = await getDoc(transactionRef);
-    
-    if (!transactionDoc.exists()) {
-      throw new Error('Transaction not found');
-    }
+
+    if (!transactionDoc.exists()) throw new Error('Transaction not found');
 
     const oldAmount = transactionDoc.data().amount;
     const amountDiff = newAmount - oldAmount;
@@ -120,11 +170,9 @@ export async function updateTransaction(transactionId: string, newAmount: number
       type: newAmount >= 0 ? 'income' : 'expense'
     });
 
-    // Update user balance
     await updateBalanceOnTransaction(transactionDoc.data().userId, amountDiff);
   } catch (error) {
     console.error('Error updating transaction:', error);
-    throw error;
   }
 }
 
@@ -132,44 +180,35 @@ export async function deleteTransaction(transactionId: string): Promise<void> {
   try {
     const transactionRef = doc(db, 'transactions', transactionId);
     const transactionDoc = await getDoc(transactionRef);
-    
-    if (!transactionDoc.exists()) {
-      throw new Error('Transaction not found');
-    }
+
+    if (!transactionDoc.exists()) throw new Error('Transaction not found');
 
     const transactionData = transactionDoc.data();
     await deleteDoc(transactionRef);
 
-    // Update user balance by subtracting the transaction amount
     await updateBalanceOnTransaction(transactionData.userId, -transactionData.amount);
   } catch (error) {
     console.error('Error deleting transaction:', error);
-    throw error;
   }
 }
 
-// Get user balance
+// Balance
 export async function getUserBalance(userId: string): Promise<number> {
   try {
     const userBalanceRef = doc(db, 'userBalances', userId);
     const userBalanceDoc = await getDoc(userBalanceRef);
-    
-    if (userBalanceDoc.exists()) {
-      // The balance is stored in USD
-      return userBalanceDoc.data().balance;
-    }
-    
-    // If no balance exists, calculate from transactions
+
+    if (userBalanceDoc.exists()) return userBalanceDoc.data().balance;
+
     const transactions = await getUserTransactions(userId);
     const calculatedBalance = transactions.reduce((sum, t) => sum + t.amount, 0);
-    
-    // Save calculated balance in USD
+
     await setDoc(userBalanceRef, {
       userId,
       balance: calculatedBalance,
       lastUpdated: new Date()
     });
-    
+
     return calculatedBalance;
   } catch (error) {
     console.error('Error getting user balance:', error);
@@ -177,15 +216,12 @@ export async function getUserBalance(userId: string): Promise<number> {
   }
 }
 
-// Update user balance
 export async function updateUserBalance(userId: string, newBalance: number): Promise<void> {
   try {
     const userBalanceRef = doc(db, 'userBalances', userId);
-    // Ensure the balance is stored in USD
-    const balanceInUSD = newBalance;
     await setDoc(userBalanceRef, {
       userId,
-      balance: balanceInUSD,
+      balance: newBalance,
       lastUpdated: new Date()
     });
   } catch (error) {
@@ -193,7 +229,6 @@ export async function updateUserBalance(userId: string, newBalance: number): Pro
   }
 }
 
-// Update balance when transaction is added
 export async function updateBalanceOnTransaction(userId: string, amount: number): Promise<void> {
   try {
     const currentBalance = await getUserBalance(userId);
@@ -202,37 +237,3 @@ export async function updateBalanceOnTransaction(userId: string, amount: number)
     console.error('Error updating balance on transaction:', error);
   }
 }
-
-export async function getUserSettings(userId: string): Promise<UserSettings | null> {
-  try {
-    const settingsRef = doc(db, 'userSettings', userId);
-    const settingsDoc = await getDoc(settingsRef);
-    
-    if (settingsDoc.exists()) {
-      return {
-        userId,
-        defaultCurrency: settingsDoc.data().defaultCurrency || 'USD',
-        lastUpdated: settingsDoc.data().lastUpdated?.toDate() || new Date()
-      };
-    }
-    return null;
-  } catch (error) {
-    console.error('Error getting user settings:', error);
-    return null;
-  }
-}
-
-export async function updateUserSettings(userId: string, settings: Partial<UserSettings>): Promise<void> {
-  try {
-    const settingsRef = doc(db, 'userSettings', userId);
-    await setDoc(settingsRef, {
-      ...settings,
-      lastUpdated: new Date()
-    }, { merge: true });
-  } catch (error) {
-    console.error('Error updating user settings:', error);
-    throw error;
-  }
-}
-
-export default app;

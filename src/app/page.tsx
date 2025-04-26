@@ -207,144 +207,146 @@ function HomeContent() {
 
   return (
     <main className={`min-h-screen pb-16 ${isLightTheme ? 'bg-gray-50' : 'bg-gray-900'}`}>
-      <div className="p-4">
-        <div className={`rounded-lg p-6 mb-6 ${isLightTheme ? 'bg-white' : 'bg-gray-800'} shadow`}>
-          <div className="flex justify-between items-center mb-6">
-            <h1 className={`text-2xl font-bold ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>{t('home.myFinance')}</h1>
+  <div className="p-4">
+    <div className={`rounded-lg p-6 mb-6 ${isLightTheme ? 'bg-white' : 'bg-gray-800'} shadow`}>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className={`text-2xl font-bold ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>{t('home.myFinance')}</h1>
+      </div>
+
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-gray-500">{t('home.totalBalance')}</p>
             <button
-              onClick={() => setIsAddTransactionOpen(true)}
-              className="w-10 h-10 bg-[#8B5CF6] text-white rounded-full flex items-center justify-center hover:bg-[#7C3AED] transition-colors"
+              onClick={() => setIsEditBalanceOpen(true)}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
           </div>
-
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-gray-500">{t('home.totalBalance')}</p>
-                <button
-                  onClick={() => setIsEditBalanceOpen(true)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-              </div>
-              <p className={`text-2xl font-bold ${balance < 0 ? 'text-red-500' : isLightTheme ? 'text-gray-900' : 'text-white'}`}>
-                {getCurrencySymbol()}{convertAmount(balance).toFixed(2)}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveChart('pie')}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                  activeChart === 'pie'
-                    ? 'bg-[#8B5CF6] text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {t('home.pieChart')}
-              </button>
-              <button
-                onClick={() => setActiveChart('bar')}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                  activeChart === 'bar'
-                    ? 'bg-[#8B5CF6] text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {t('home.barChart')}
-              </button>
-            </div>
-          </div>
-
-          <div className="h-64 mb-6">
-            {activeChart === 'pie' ? (
-              <ExpenseChart expenses={expensesByCategory} income={0} />
-            ) : (
-              <BarChart data={sortedTransactionsByDate} />
-            )}
-          </div>
-
-          <div className="space-y-4">
-            <h2 className={`text-lg font-semibold ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>{t('home.recentTransactions')}</h2>
-            {transactions.length === 0 ? (
-              <p className={`text-center ${isLightTheme ? 'text-gray-600' : 'text-gray-400'}`}>{t('common.noTransactions')}</p>
-            ) : (
-              transactions.map((transaction) => (
-                <div
-                  key={transaction.id}
-                  onClick={() => setSelectedTransaction(transaction)}
-                  className={`flex items-center justify-between p-4 rounded-xl cursor-pointer ${
-                    isLightTheme 
-                      ? 'bg-gray-50 hover:bg-gray-100' 
-                      : 'bg-gray-700 hover:bg-gray-600'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: transaction.color }}
-                    >
-                      <span className="text-white font-medium">
-                        {t(`categories.${transaction.category}`).charAt(0)}
-                      </span>
-                    </div>
-                    <div>
-                      <p className={`font-medium ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
-                        {t(`categories.${transaction.category}`)}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {transaction.date.toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <p className={`font-semibold ${transaction.amount < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                    {transaction.amount < 0 ? '-' : '+'}
-                    {getCurrencySymbol()}{convertAmount(Math.abs(transaction.amount)).toFixed(2)}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
+          <p className={`text-2xl font-bold ${balance < 0 ? 'text-red-500' : isLightTheme ? 'text-gray-900' : 'text-white'}`}>
+            {getCurrencySymbol()}{convertAmount(balance).toFixed(2)}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveChart('pie')}
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              activeChart === 'pie'
+                ? 'bg-[#8B5CF6] text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {t('home.pieChart')}
+          </button>
+          <button
+            onClick={() => setActiveChart('bar')}
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              activeChart === 'bar'
+                ? 'bg-[#8B5CF6] text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {t('home.barChart')}
+          </button>
         </div>
       </div>
 
-      <BottomNav />
+      <div className="h-64 mb-6">
+        {activeChart === 'pie' ? (
+          <ExpenseChart expenses={expensesByCategory} income={0} />
+        ) : (
+          <BarChart data={sortedTransactionsByDate} />
+        )}
+      </div>
 
-      {isAddTransactionOpen && (
-        <AddTransaction
-          isOpen={isAddTransactionOpen}
-          onClose={() => setIsAddTransactionOpen(false)}
-          onAddTransaction={handleAddTransaction}
-        />
-      )}
+      <div className="space-y-4">
+        <h2 className={`text-lg font-semibold ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>{t('home.recentTransactions')}</h2>
+        {transactions.length === 0 ? (
+          <p className={`text-center ${isLightTheme ? 'text-gray-600' : 'text-gray-400'}`}>{t('common.noTransactions')}</p>
+        ) : (
+          transactions.map((transaction) => (
+            <div
+              key={transaction.id}
+              onClick={() => setSelectedTransaction(transaction)}
+              className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors duration-200 ${
+                isLightTheme
+                  ? 'bg-gray-50 hover:bg-gray-100'
+                  : 'bg-gray-700 hover:bg-gray-600'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: transaction.color }}
+                >
+                  <span className="text-white font-medium">
+                    {t(`categories.${transaction.category}`).charAt(0)}
+                  </span>
+                </div>
+                <div>
+                  <p className={`font-medium ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>
+                    {t(`categories.${transaction.category}`)}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {transaction.date.toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <p className={`font-semibold ${transaction.amount < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                {transaction.amount < 0 ? '-' : '+'}
+                {getCurrencySymbol()}{convertAmount(Math.abs(transaction.amount)).toFixed(2)}
+              </p>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  </div>
 
-      {selectedTransaction && (
-        <EditTransactionModal
-          isOpen={true}
-          onClose={() => setSelectedTransaction(null)}
-          transaction={selectedTransaction}
-          onEdit={handleEditTransaction}
-          onDelete={handleDeleteTransaction}
-        />
-      )}
+  <button
+    onClick={() => setIsAddTransactionOpen(true)}
+    className="fixed bottom-24 right-4 w-14 h-14 bg-[#8B5CF6] text-white rounded-full flex items-center justify-center shadow-lg hover:bg-[#7C3AED] transition-colors z-50"
+  >
+    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    </svg>
+  </button>
 
-      {isEditBalanceOpen && (
-        <EditBalanceModal
-          isOpen={isEditBalanceOpen}
-          onClose={() => setIsEditBalanceOpen(false)}
-          currentBalance={balance}
-          onSave={setBalance}
-          transactions={transactions}
-        />
-      )}
-    </main>
+  <BottomNav />
+
+  {isAddTransactionOpen && (
+    <AddTransaction
+      isOpen={isAddTransactionOpen}
+      onClose={() => setIsAddTransactionOpen(false)}
+      onAddTransaction={handleAddTransaction}
+    />
+  )}
+
+  {selectedTransaction && (
+    <EditTransactionModal
+      isOpen={true}
+      onClose={() => setSelectedTransaction(null)}
+      transaction={selectedTransaction}
+      onEdit={handleEditTransaction}
+      onDelete={handleDeleteTransaction}
+    />
+  )}
+
+  {isEditBalanceOpen && (
+    <EditBalanceModal
+      isOpen={isEditBalanceOpen}
+      onClose={() => setIsEditBalanceOpen(false)}
+      currentBalance={balance}
+      onSave={setBalance}
+      transactions={transactions}
+    />
+  )}
+</main>
+
   );
 }
 
@@ -354,7 +356,7 @@ const HomeContentWithSuspense = () => {
   const { t } = useTranslation();
   
   return (
-    <Suspense fallback={<div>Loading..</div>}>
+    <Suspense fallback={<div>Loading...</div>}>
       <HomeContent />
     </Suspense>
   );
