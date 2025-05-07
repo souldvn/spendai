@@ -2,7 +2,8 @@
 import { Handler } from '@netlify/functions';
 import { bot } from '../../src/lib/telegramBot';
 
-const handler: Handler = async (event) => {
+export const handler: Handler = async (event) => {
+  // Проверка метода запроса
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -10,20 +11,28 @@ const handler: Handler = async (event) => {
     };
   }
 
+  // Проверка наличия тела запроса
+  if (!event.body) {
+    return {
+      statusCode: 400,
+      body: 'Bad Request',
+    };
+  }
+
   try {
-    const body = JSON.parse(event.body || '{}');
-    await bot.handleUpdate(body);
+    // Обработка входящего обновления
+    const update = JSON.parse(event.body);
+    await bot.handleUpdate(update);
+    
     return {
       statusCode: 200,
       body: 'OK',
     };
   } catch (error) {
-    console.error('Telegram Webhook Error:', error);
+    console.error('Error processing update:', error);
     return {
       statusCode: 500,
       body: 'Internal Server Error',
     };
   }
 };
-
-export { handler };

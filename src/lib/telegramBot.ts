@@ -1,14 +1,15 @@
+// src/lib/telegramBot.ts
 import { Telegraf } from 'telegraf';
 
-const token = process.env.TELEGRAM_BOT_TOKEN!;
-if (!token) throw new Error('Bot token is required');
+const token = process.env.TELEGRAM_BOT_TOKEN;
+if (!token) throw new Error('TELEGRAM_BOT_TOKEN is required');
 
-const bot = new Telegraf(token);
+export const bot = new Telegraf(token);
 
-// Команды
+// Обработка команды /start
 bot.start((ctx) => {
   const webAppUrl = 'https://smartspendai.netlify.app';
-  ctx.reply(
+  return ctx.reply(
     'Привет! Я бот для управления финансами. Нажми кнопку ниже, чтобы открыть приложение:',
     {
       reply_markup: {
@@ -20,8 +21,9 @@ bot.start((ctx) => {
   );
 });
 
-bot.command('help', (ctx) => {
-  ctx.reply(`
+// Обработка команды /help
+bot.help((ctx) => {
+  return ctx.reply(`
 Доступные команды:
 /start - Начать
 /help - Помощь
@@ -31,26 +33,34 @@ bot.command('help', (ctx) => {
   `);
 });
 
-bot.command('balance', (ctx) => ctx.reply('Баланс: 0 ₽'));
+// Обработка команды /balance
+bot.command('balance', (ctx) => {
+  return ctx.reply('Баланс: 0 ₽');
+});
 
-bot.command('transactions', (ctx) => ctx.reply('Последние транзакции:\nНет транзакций'));
+// Обработка команды /transactions
+bot.command('transactions', (ctx) => {
+  return ctx.reply('Последние транзакции:\nНет транзакций');
+});
 
+// Обработка команды /report
 bot.command('report', async (ctx) => {
   const userId = ctx.from?.id;
   if (!userId) return ctx.reply('Не удалось получить ваш ID.');
 
   try {
     const report = await generateDailyReportForUser(userId);
-    await ctx.reply(report);
+    return ctx.reply(report);
   } catch (err) {
     console.error('Ошибка при генерации отчета:', err);
-    ctx.reply('Произошла ошибка при генерации отчета.');
+    return ctx.reply('Произошла ошибка при генерации отчета.');
   }
 });
 
+// Логирование входящих сообщений
 bot.on('message', (ctx) => {
   if ('text' in ctx.message) {
-    console.log('Message:', ctx.message.text);
+    console.log('Received message:', ctx.message.text);
   }
 });
 
@@ -58,6 +68,3 @@ bot.on('message', (ctx) => {
 async function generateDailyReportForUser(userId: number) {
   return `Отчет для пользователя ${userId}:\nДоход: 1000 ₽\nРасход: 500 ₽`;
 }
-
-// 👇 Вот это главное:
-export { bot };
