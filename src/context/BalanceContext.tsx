@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getUserBalance, updateUserBalance } from '@/firebaseConfig';
+import { getUserBalance, updateUserBalance } from '@/lib/firebaseConfig';
 import { useCurrency } from '@/context/CurrencyContext';
 
 interface BalanceContextType {

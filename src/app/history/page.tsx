@@ -9,7 +9,7 @@ import BottomNav from '@/components/BottomNav';
 import EditTransactionModal from '@/components/EditTransactionModal';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import { getUserTransactions, updateTransaction, deleteTransaction } from '@/firebaseConfig';
+import { getUserTransactions, updateTransaction, deleteTransaction } from '@/lib/firebaseConfig';
 import type { Transaction } from '@/types';
 import { useCurrency } from '@/context/CurrencyContext';
 

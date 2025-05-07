@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { getUserSettings, updateUserSettings } from '@/firebaseConfig';
+import { getUserSettings, updateUserSettings } from '@/lib/firebaseConfig';
 
 type Currency = 'USD' | 'RUB';
 

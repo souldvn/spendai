@@ -8,7 +8,7 @@ import { EditBalanceModal } from '@/components/EditBalanceModal';
 import BottomNav from '@/components/BottomNav';
 import ExpenseChart from '@/components/ExpenseChart';
 import BarChart from '@/components/BarChart';
-import { addTransaction as addTransactionToFirebase, getUserTransactions, updateTransaction, deleteTransaction } from '@/firebaseConfig';
+import { addTransaction as addTransactionToFirebase, getUserTransactions, updateTransaction, deleteTransaction } from '@/lib/firebaseConfig';
 import type { Transaction } from '@/types';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useBalance } from '@/context/BalanceContext';

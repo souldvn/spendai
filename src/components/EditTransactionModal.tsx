@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Transaction } from '@/types';
-import { updateTransaction, deleteTransaction } from '@/firebaseConfig';
+import { updateTransaction, deleteTransaction } from '@/lib/firebaseConfig';
 import { useTheme } from '@/context/ThemeContext';
 import { useBalance } from '@/context/BalanceContext';
 import { useCurrency } from '@/context/CurrencyContext';

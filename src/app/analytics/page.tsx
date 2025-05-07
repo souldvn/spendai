@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getUserTransactions } from '@/firebaseConfig';
+import { getUserTransactions } from '@/lib/firebaseConfig';
 import { Transaction } from '@/types';
 import BottomNav from '@/components/BottomNav';
 import { useSearchParams, useRouter } from 'next/navigation';

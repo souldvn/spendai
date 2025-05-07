@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useCurrency } from '@/context/CurrencyContext';
-import { updateTransaction } from '@/firebaseConfig';
+import { updateTransaction } from '@/lib/firebaseConfig';
 
 interface EditBalanceModalProps {
   isOpen: boolean;

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
 import { useTheme } from '@/context/ThemeContext';
 import { useTranslation } from '@/hooks/useTranslation';
-import { getUserReportsSettings, updateUserReportsSettings } from '../../../firebaseConfig';
+import { getUserReportsSettings, updateUserReportsSettings } from '../../../lib/firebaseConfig';
 
 const ReportManagementContent = () => {
   const router = useRouter();
