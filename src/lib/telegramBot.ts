@@ -1,4 +1,8 @@
+import dotenv from 'dotenv';
 import { Telegraf } from 'telegraf';
+import { generateUserReport } from '@/firebaseConfig';
+
+dotenv.config(); // Загрузка переменных окружения
 
 const token = process.env.TELEGRAM_BOT_TOKEN!;
 if (!token) throw new Error('Bot token is required');
@@ -58,6 +62,18 @@ bot.on('message', (ctx) => {
 async function generateDailyReportForUser(userId: number) {
   return `Отчет для пользователя ${userId}:\nДоход: 1000 ₽\nРасход: 500 ₽`;
 }
+
+bot.command('testreport', async (ctx) => {
+  const userId = String(ctx.from.id);
+  try {
+    const report = await generateUserReport(userId, 'daily');
+    await ctx.reply(report);
+    console.log(`Test report sent to ${userId}`);
+  } catch (error) {
+    console.error('Test report failed:', error instanceof Error ? error.message : error);
+    await ctx.reply('Ошибка генерации отчёта');
+  }
+});
 
 // 👇 Вот это главное:
 export { bot };

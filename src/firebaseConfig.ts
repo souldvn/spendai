@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+
 import {
   getFirestore,
   collection,
@@ -51,6 +52,35 @@ export interface UserBalance {
 }
 
 // User settings
+
+
+
+export function filterTransactionsByPeriod(
+  transactions: Transaction[], 
+  period: 'day' | 'week' | 'month'
+): Transaction[] {
+  const now = new Date();
+  let startDate: Date;
+
+  switch (period) {
+    case 'day':
+      startDate = new Date(now.setHours(0, 0, 0, 0));
+      break;
+    case 'week':
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      startDate = new Date(now.setDate(diff));
+      startDate.setHours(0, 0, 0, 0);
+      break;
+    case 'month':
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      break;
+    default:
+      startDate = new Date(0); // Все транзакции
+  }
+
+  return transactions.filter(t => t.date >= startDate);
+}
 export async function getUserSettings(userId: string): Promise<UserSettings | null> {
   try {
     const settingsRef = doc(db, 'userSettings', userId);
@@ -76,6 +106,24 @@ export async function getUserSettings(userId: string): Promise<UserSettings | nu
     return null;
   }
 }
+
+// firebaseConfig.ts
+export async function getAllUsersReportsSettings() {
+  try {
+    const snapshot = await getDocs(collection(db, 'userReportsSettings'));
+    return snapshot.docs.map(doc => ({ userId: doc.id, reports: doc.data() }));
+  } catch (error) {
+    console.error('Error getting all users reports settings:', error);
+    return [];
+  }
+}
+
+
+export async function getUserReportContent(userId: string, type: 'daily' | 'weekly' | 'monthly') {
+  // Пример простой заглушки:
+  return `Ваш ${type} отчёт готов! (пока без реальных данных)`;
+}
+
 
 export async function updateUserSettings(userId: string, data: Partial<UserSettings>): Promise<void> {
   try {
@@ -226,6 +274,132 @@ export async function updateUserBalance(userId: string, newBalance: number): Pro
     });
   } catch (error) {
     console.error('Error updating user balance:', error);
+  }
+}
+
+export async function generateUserReport(
+  userId: string, 
+  reportType: 'daily' | 'weekly' | 'monthly'
+): Promise<string> {
+  try {
+    // Получаем все транзакции пользователя
+    const allTransactions = await getUserTransactions(userId);
+    
+    // Определяем период для фильтрации
+    const periodMap = {
+      daily: 'day',
+      weekly: 'week',
+      monthly: 'month'
+    };
+    
+    // Фильтруем транзакции
+    const filteredTransactions = filterTransactionsByPeriod(
+      allTransactions,
+      periodMap[reportType] as 'day' | 'week' | 'month'
+    );
+
+    // Получаем настройки пользователя
+    const settings = await getUserSettings(userId);
+    const currencySymbol = settings?.defaultCurrency === 'USD' ? '$' : '₽';
+    
+    // Анализируем данные (используем логику из вашего компонента Analytics)
+    const totalExpenses = filteredTransactions
+      .filter(t => t.amount < 0)
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+    const totalIncome = filteredTransactions
+      .filter(t => t.amount > 0)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const balance = await getUserBalance(userId);
+
+    // Анализ категорий (аналогично вашему коду)
+    const expensesByCategory = filteredTransactions
+      .filter(t => t.amount < 0)
+      .reduce((acc: {category: string; amount: number}[], t) => {
+        const existing = acc.find(e => e.category === t.category);
+        if (existing) {
+          existing.amount += Math.abs(t.amount);
+        } else {
+          acc.push({
+            category: t.category,
+            amount: Math.abs(t.amount)
+          });
+        }
+        return acc;
+      }, []);
+
+    const topCategories = expensesByCategory
+      .map(({category, amount}) => ({
+        category,
+        amount,
+        percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0
+      }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 3);
+
+    // Формируем текст отчёта
+    let reportText = `📊 ${reportType === 'daily' ? 'Ежедневный' : 
+                     reportType === 'weekly' ? 'Еженедельный' : 'Ежемесячный'} отчёт\n`;
+    reportText += '——————————————\n';
+    reportText += `💰 Баланс: ${balance.toFixed(2)} ${currencySymbol}\n`;
+    reportText += `📈 Доходы: ${totalIncome.toFixed(2)} ${currencySymbol}\n`;
+    reportText += `📉 Расходы: ${totalExpenses.toFixed(2)} ${currencySymbol}\n`;
+    
+    if (totalIncome > 0) {
+      const savingsRate = ((totalIncome - totalExpenses) / totalIncome) * 100;
+      reportText += `💵 Накопления: ${savingsRate.toFixed(1)}%\n`;
+    }
+    
+    reportText += '——————————————\n';
+    reportText += `💳 Операций: ${filteredTransactions.length}\n`;
+    
+    if (topCategories.length > 0) {
+      reportText += '🏷️ Топ категории:\n';
+      topCategories.forEach((cat, i) => {
+        reportText += `${i+1}. ${cat.category}: ${cat.amount.toFixed(2)} ${currencySymbol} (${cat.percentage.toFixed(1)}%)\n`;
+      });
+    }
+    
+    reportText += '——————————————\n';
+    
+    // Добавляем анализ финансового здоровья (из вашего кода)
+    const expenseRatio = totalIncome > 0 ? totalExpenses / totalIncome : 0;
+    const balanceCoverage = totalExpenses > 0 ? balance / totalExpenses : 0;
+    
+    if (expenseRatio > 0.8) {
+      reportText += '⚠️ Высокий уровень расходов\n';
+    } else if (expenseRatio < 0.5) {
+      reportText += '✅ Хороший уровень накоплений\n';
+    }
+    
+    if (balanceCoverage < 3) {
+      reportText += `ℹ️ Финансовая подушка: ${balanceCoverage.toFixed(1)} мес.\n`;
+    }
+
+    return reportText;
+  } catch (error) {
+    console.error('Error generating report:', error);
+    return '❌ Не удалось сформировать отчёт. Пожалуйста, попробуйте позже.';
+  }
+}
+
+export async function getUsersWithEnabledReports(): Promise<{userId: string; reports: UserReportsSettings}[]> {
+  try {
+    const snapshot = await getDocs(collection(db, 'userSettings'));
+    
+    return snapshot.docs
+      .filter(doc => {
+        const data = doc.data();
+        return data.reports?.daily || data.reports?.weekly || data.reports?.monthly;
+      })
+      .map(doc => ({
+        userId: doc.id,
+        reports: doc.data().reports as UserReportsSettings
+      }));
+  } catch (error) {
+    console.error('Error getting users with reports:', error);
+    return [];
   }
 }
 
