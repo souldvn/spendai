@@ -9,50 +9,74 @@ import {
 } from '@/lib/firebaseConfig';
 import cron from 'node-cron';
 
+// 1. Инициализация окружения
 dotenv.config();
 
-// Инициализация бота
+// 2. Проверка токена
 const token = process.env.TELEGRAM_BOT_TOKEN;
-if (!token) throw new Error('TELEGRAM_BOT_TOKEN is required');
+if (!token) {
+  console.error('❌ Токен бота не найден в .env файле');
+  process.exit(1);
+}
 
+// 3. Создание экземпляра бота
 export const bot = new Telegraf(token);
 
-// ==================== КОМАНДЫ БОТА ====================
+// ==================== БАЗОВЫЕ КОМАНДЫ ====================
 
-bot.start((ctx) => {
-  const webAppUrl = 'https://smartspendai.netlify.app';
-  ctx.reply(
-    'Привет! Я бот для управления финансами. Нажми кнопку ниже, чтобы открыть приложение:',
-    {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: 'Открыть приложение', web_app: { url: webAppUrl } }]
-        ]
+// Команда /start с улучшенной обработкой ошибок
+bot.start(async (ctx) => {
+  try {
+    const webAppUrl = 'https://smartspendai.netlify.app';
+    await ctx.reply(
+      'Привет! Я бот для управления финансами. Нажми кнопку ниже, чтобы открыть приложение:',
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{
+              text: 'Открыть приложение', 
+              web_app: { 
+                url: webAppUrl 
+              }
+            }]
+          ]
+        }
       }
-    }
-  );
+    );
+    console.log(`🟢 Пользователь ${ctx.from.id} запустил бота`);
+  } catch (error) {
+    console.error('🔴 Ошибка в команде start:', error);
+    await ctx.reply('Произошла ошибка при запуске бота');
+  }
 });
 
-bot.command('help', (ctx) => {
-  ctx.reply(`
-Доступные команды:
+// Команда /help
+bot.help(async (ctx) => {
+  try {
+    await ctx.reply(`
+📚 Доступные команды:
 /start - Начать работу
-/help - Помощь
+/help - Справка по командам
 /balance - Текущий баланс
-/transactions - Последние транзакции
-/report - Получить отчет
-/testreport - Тест генерации отчета
-  `);
+/transactions - История операций
+/report - Финансовый отчет
+/testreport - Тест системы отчетов
+    `);
+  } catch (error) {
+    console.error('Ошибка в команде help:', error);
+  }
 });
+
+// ==================== ФИНАНСОВЫЕ КОМАНДЫ ====================
 
 bot.command('balance', async (ctx) => {
   try {
     const userId = String(ctx.from.id);
     const balance = await getUserBalance(userId);
-    ctx.reply(`Текущий баланс: ${balance.toFixed(2)} ₽`);
+    await ctx.reply(`💰 Ваш баланс: ${balance.toFixed(2)} ₽`);
   } catch (error) {
-    console.error('Balance error:', error);
-    ctx.reply('Не удалось получить баланс');
+    console.error('Ошибка получения баланса:', error);
+    await ctx.reply('❌ Не удалось получить баланс');
   }
 });
 
@@ -61,133 +85,125 @@ bot.command('transactions', async (ctx) => {
     const userId = String(ctx.from.id);
     const transactions = await getUserTransactions(userId);
     
-    if (transactions.length === 0) {
-      return ctx.reply('У вас нет транзакций');
+    if (!transactions.length) {
+      return await ctx.reply('📭 У вас пока нет транзакций');
     }
     
-    const lastTransactions = transactions
+    const report = transactions
       .slice(0, 5)
-      .map(t => `${t.date.toLocaleDateString()}: ${t.amount > 0 ? '+' : ''}${t.amount} ₽ (${t.category})`)
+      .map(t => `▸ ${t.date.toLocaleDateString()}: ${t.amount > 0 ? '+' : ''}${t.amount} ₽ (${t.category})`)
       .join('\n');
     
-    ctx.reply(`Последние транзакции:\n${lastTransactions}`);
+    await ctx.reply(`📋 Последние операции:\n${report}`);
   } catch (error) {
-    console.error('Transactions error:', error);
-    ctx.reply('Не удалось получить транзакции');
+    console.error('Ошибка получения транзакций:', error);
+    await ctx.reply('❌ Не удалось загрузить транзакции');
   }
 });
+
+// ==================== СИСТЕМА ОТЧЕТОВ ====================
 
 bot.command('report', async (ctx) => {
   try {
     const userId = String(ctx.from.id);
     const report = await generateUserReport(userId, 'daily');
     await ctx.reply(report);
+    console.log(`📊 Отчет отправлен пользователю ${userId}`);
   } catch (error) {
-    console.error('Report error:', error);
-    ctx.reply('Ошибка при генерации отчета');
+    console.error('Ошибка генерации отчета:', error);
+    await ctx.reply('❌ Ошибка при формировании отчета');
   }
 });
 
 bot.command('testreport', async (ctx) => {
-  const userId = String(ctx.from.id);
-  console.log(`[TestReport] Start for user ${userId}`);
-  
   try {
-    // 1. Проверяем настройки пользователя
+    const userId = String(ctx.from.id);
+    console.log(`🔍 Тест отчета для ${userId}`);
+    
     const settings = await getUserSettings(userId);
     if (!settings) {
-      console.log('[TestReport] No settings found');
-      return ctx.reply('Настройки не найдены. Пожалуйста, настройте отчеты в веб-приложении.');
+      console.log('⚙️ Настройки не найдены');
+      return await ctx.reply('⚙️ Настройте отчеты в веб-приложении');
     }
-    console.log('[TestReport] User settings:', settings.reports);
     
-    // 2. Генерируем отчет
     const report = await generateUserReport(userId, 'daily');
-    console.log('[TestReport] Generated report:', report);
-    
-    // 3. Отправляем отчет
     await ctx.reply(report);
-    console.log('[TestReport] Report sent successfully');
+    console.log('✅ Тест отчета выполнен');
     
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[TestReport] Error:', errorMessage);
-    await ctx.reply(`Ошибка: ${errorMessage}`);
+    const errMsg = error instanceof Error ? error.message : 'Неизвестная ошибка';
+    console.error('❌ Ошибка теста:', errMsg);
+    await ctx.reply(`❌ Ошибка: ${errMsg}`);
   }
 });
 
 // ==================== ПЛАНИРОВЩИК ОТЧЕТОВ ====================
 
-function initializeScheduler() {
-  console.log('Initializing scheduler...');
+function setupScheduler() {
+  console.log('⏳ Настройка планировщика...');
 
-  // Тестовая задача каждые 10 минут для проверки работы
+  // Проверка работы
   cron.schedule('*/10 * * * *', () => {
-    console.log('[Scheduler] Heartbeat - scheduler is alive');
+    console.log('🫀 Планировщик активен');
   });
 
-  // Реальное расписание отправки отчетов
-  cron.schedule('0 9 * * *', () => sendReports('daily'));    // Ежедневно в 9:00
-  cron.schedule('0 10 * * 1', () => sendReports('weekly'));  // По понедельникам в 10:00
-  cron.schedule('0 11 1 * *', () => sendReports('monthly')); // 1-го числа в 11:00
+  // Реальное расписание
+  cron.schedule('0 9 * * *', () => sendReports('daily'));
+  cron.schedule('0 10 * * 1', () => sendReports('weekly'));
+  cron.schedule('0 11 1 * *', () => sendReports('monthly'));
 
-  // Для отладки - отправка каждые 5 минут
-  if (process.env.NODE_ENV === 'development') {
+  // Для отладки
+  if (process.env.NODE_ENV !== 'production') {
     cron.schedule('*/5 * * * *', () => sendReports('daily'));
+    console.log('🔧 Включен режим отладки (отчеты каждые 5 мин)');
   }
 
-  console.log('Scheduler initialized');
+  console.log('✅ Планировщик настроен');
 }
 
 async function sendReports(type: 'daily' | 'weekly' | 'monthly') {
-  console.log(`[Scheduler] Starting ${type} reports`);
+  console.log(`⏳ Запуск ${type} отчетов...`);
   
   try {
-    // 1. Получаем пользователей с включенными отчетами
     const users = await getUsersWithEnabledReports();
-    console.log(`[Scheduler] Found ${users.length} users with enabled reports`);
+    console.log(`👥 Найдено пользователей: ${users.length}`);
     
-    if (users.length === 0) {
-      return console.log('[Scheduler] No users with enabled reports found');
-    }
-
-    // 2. Обрабатываем каждого пользователя
     for (const user of users) {
       try {
-        if (!user.reports?.[type]) {
-          console.log(`[Scheduler] Skipping user ${user.userId} - ${type} report disabled`);
-          continue;
-        }
-
-        console.log(`[Scheduler] Generating report for ${user.userId}`);
+        if (!user.reports?.[type]) continue;
+        
         const report = await generateUserReport(user.userId, type);
-        
-        console.log(`[Scheduler] Sending report to ${user.userId}`);
         await bot.telegram.sendMessage(user.userId, report);
+        console.log(`✉️ Отчет отправлен ${user.userId}`);
         
-        console.log(`[Scheduler] Report sent to ${user.userId}`);
       } catch (error) {
-        console.error(`[Scheduler] Error processing user ${user.userId}:`, error);
+        console.error(`❌ Ошибка для ${user.userId}:`, error);
       }
     }
-    
-    console.log(`[Scheduler] Completed ${type} reports`);
   } catch (error) {
-    console.error(`[Scheduler] System error during ${type} reports:`, error);
+    console.error('⛔ Критическая ошибка:', error);
   }
 }
 
 // ==================== ЗАПУСК СИСТЕМЫ ====================
 
-// Инициализация планировщика
-initializeScheduler();
+// Настройка обработки ошибок
+bot.catch((err, ctx) => {
+  console.error('🔥 Глобальная ошибка:', err);
+  ctx.reply('⚠️ Произошла системная ошибка');
+});
+
+// Инициализация
+setupScheduler();
 
 // Запуск бота
 bot.launch()
-  .then(() => console.log('🤖 Бот успешно запущен'))
-  .catch(err => console.error('🚨 Ошибка запуска бота:', err));
+  .then(() => console.log('🤖 Бот запущен и готов к работе'))
+  .catch(err => console.error('🚨 Ошибка запуска:', err));
 
-// Обработка завершения работы
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
-
+// Корректное завершение
+process.once('SIGINT', () => {
+  console.log('🛑 Завершение работы...');
+  bot.stop('SIGINT');
+  process.exit();
+});
