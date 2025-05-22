@@ -83,40 +83,40 @@ export function generateDailyReport(data: ReportData): string {
   return report;
 }
 
-// export function generateWeeklyReport(data: ReportData): string {
-//   const filtered = data.transactions.filter(tx => isThisWeek(new Date(tx.date)));
-//   const { income, expenses, expensesByCategory } = analyze(filtered, data.currencyRate);
+export function generateWeeklyReport(data: ReportData): string {
+  const filtered = data.transactions.filter(tx => isThisWeek(new Date(tx.date)));
+  const { income, expenses, expensesByCategory } = analyze(filtered, data.currencyRate);
 
-//   let report = `📅 Недельный отчет\n\n`;
-//   report += `Баланс: ${data.currencySymbol}${(data.currentBalance * data.currencyRate).toFixed(2)}\n`;
-//   report += `Общий доход: +${data.currencySymbol}${income.toFixed(2)}\n`;
-//   report += `Общие расходы: -${data.currencySymbol}${expenses.toFixed(2)}\n\n`;
+  let report = `📅 Недельный отчет\n\n`;
+  report += `Баланс: ${data.currencySymbol}${(data.currentBalance * data.currencyRate).toFixed(2)}\n`;
+  report += `Общий доход: +${data.currencySymbol}${income.toFixed(2)}\n`;
+  report += `Общие расходы: -${data.currencySymbol}${expenses.toFixed(2)}\n\n`;
 
-//   if (Object.keys(expensesByCategory).length > 0) {
-//     report += `По категориям:\n`;
-//     for (const [cat, amt] of Object.entries(expensesByCategory)) {
-//       report += `• ${cat}: ${data.currencySymbol}${amt.toFixed(2)}\n`;
-//     }
-//   }
+  if (Object.keys(expensesByCategory).length > 0) {
+    report += `По категориям:\n`;
+    for (const [cat, amt] of Object.entries(expensesByCategory)) {
+      report += `• ${cat}: ${data.currencySymbol}${amt.toFixed(2)}\n`;
+    }
+  }
 
-//   return report;
-// }
+  return report;
+}
 
-// export function generateMonthlyReport(data: ReportData): string {
-//   const filtered = data.transactions.filter(tx => isThisMonth(new Date(tx.date)));
-//   const { income, expenses, expensesByCategory } = analyze(filtered, data.currencyRate);
+export function generateMonthlyReport(data: ReportData): string {
+  const filtered = data.transactions.filter(tx => isThisMonth(new Date(tx.date)));
+  const { income, expenses, expensesByCategory } = analyze(filtered, data.currencyRate);
 
-//   let report = `📅 Месячный отчет\n\n`;
-//   report += `Баланс: ${data.currencySymbol}${(data.currentBalance * data.currencyRate).toFixed(2)}\n`;
-//   report += `Общий доход: +${data.currencySymbol}${income.toFixed(2)}\n`;
-//   report += `Общие расходы: -${data.currencySymbol}${expenses.toFixed(2)}\n\n`;
+  let report = `📅 Месячный отчет\n\n`;
+  report += `Баланс: ${data.currencySymbol}${(data.currentBalance * data.currencyRate).toFixed(2)}\n`;
+  report += `Общий доход: +${data.currencySymbol}${income.toFixed(2)}\n`;
+  report += `Общие расходы: -${data.currencySymbol}${expenses.toFixed(2)}\n\n`;
 
-//   if (Object.keys(expensesByCategory).length > 0) {
-//     report += `По категориям:\n`;
-//     for (const [cat, amt] of Object.entries(expensesByCategory)) {
-//       report += `• ${cat}: ${data.currencySymbol}${amt.toFixed(2)}\n`;
-//     }
-//   }
+  if (Object.keys(expensesByCategory).length > 0) {
+    report += `По категориям:\n`;
+    for (const [cat, amt] of Object.entries(expensesByCategory)) {
+      report += `• ${cat}: ${data.currencySymbol}${amt.toFixed(2)}\n`;
+    }
+  }
 
-//   return report;
-// }
+  return report;
+}
