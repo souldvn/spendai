@@ -1,15 +1,32 @@
-// src/app/api/send-report/crontasks/route.ts
-
-import { sendReports } from '@/lib/scheduler'; // Экспортируем sendReports из логики для отправки отчетов
+// /src/app/api/send-report/crontasks/route.ts
+import { sendReports } from '@/lib/scheduler'; // твоя функция отправки отчетов
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const type = url.searchParams.get('type') || 'daily'; // по умолчанию daily
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday
+  const dateOfMonth = now.getDate(); // 1, 2, ..., 31
+
+  const results: string[] = [];
 
   try {
-    await sendReports(type as 'daily' | 'weekly' | 'monthly');  // Запускаем нужный отчет
-    return new Response(`${type.charAt(0).toUpperCase() + type.slice(1)} reports sent`, { status: 200 });
+    await sendReports('daily');
+    results.push('✅ Daily report sent');
+
+    if (dayOfWeek === 1) {
+      await sendReports('weekly');
+      results.push('✅ Weekly report sent');
+    }
+
+    if (dateOfMonth === 1) {
+      await sendReports('monthly');
+      results.push('✅ Monthly report sent');
+    }
+
+    return new Response(results.join('\n'), { status: 200 });
   } catch (error) {
-    return new Response(`Error sending reports: ${error instanceof Error ? error.message : error}`, { status: 500 });
+    return new Response(
+      `🔥 Error: ${error instanceof Error ? error.message : String(error)}`,
+      { status: 500 }
+    );
   }
 }
