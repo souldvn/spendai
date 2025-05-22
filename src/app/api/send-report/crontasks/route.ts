@@ -1,10 +1,10 @@
-// /src/app/api/send-report/crontasks/route.ts
-import { sendReports } from '@/lib/scheduler'; // твоя функция отправки отчетов
+import { sendReports } from '@/lib/scheduler';
 
 export async function GET(request: Request) {
-  const now = new Date();
+  // Получаем текущее время во Вьетнаме
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
   const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday
-  const dateOfMonth = now.getDate(); // 1, 2, ..., 31
+  const dateOfMonth = now.getDate();
 
   const results: string[] = [];
 
