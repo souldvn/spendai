@@ -49,8 +49,8 @@ export async function sendReports(type: 'daily' | 'weekly' | 'monthly') {
 // }
 
 // 🕘 Продакшн-расписание:
-cron.schedule('0 9 * * *', () => sendReports('daily'));   // каждый день в 9:00
-cron.schedule('0 10 * * 1', () => sendReports('weekly')); // каждый понедельник в 10:00
-cron.schedule('0 11 1 * *', () => sendReports('monthly')); // 1 числа каждого месяца в 11:00
+// cron.schedule('0 9 * * *', () => sendReports('daily'));   // каждый день в 9:00
+// cron.schedule('0 10 * * 1', () => sendReports('weekly')); // каждый понедельник в 10:00
+// cron.schedule('0 11 1 * *', () => sendReports('monthly')); // 1 числа каждого месяца в 11:00
 
 log('✅ Scheduler initialized');
