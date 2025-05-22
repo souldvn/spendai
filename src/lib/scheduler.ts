@@ -7,7 +7,7 @@ const log = (message: string, data?: any) => {
   console.log(`[${timestamp}] ${message}`, data || '');
 };
 
-async function sendReports(type: 'daily'|'weekly'|'monthly') {
+export async function sendReports(type: 'daily'|'weekly'|'monthly') {
   try {
     log(`Starting ${type} reports`);
     
@@ -47,7 +47,7 @@ async function sendReports(type: 'daily'|'weekly'|'monthly') {
 // Для отладки - каждые 2 минуты
 cron.schedule('*/2 * * * *', () => {
   log('Scheduler heartbeat');
-  sendReports('daily').catch(console.error);
+  sendReports('weekly').catch(console.error);
 });
 
 // Реальное расписание

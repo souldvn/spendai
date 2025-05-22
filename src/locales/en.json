@@ -1,0 +1,17 @@
+{
+  "report": {
+    "daily": "Daily report",
+    "weekly": "Weekly report",
+    "monthly": "Monthly report"
+  },
+  "balance": "Balance",
+  "income": "Income",
+  "expenses": "Expenses",
+  "savings": "Savings",
+  "transactions": "Transactions",
+  "topCategories": "Top categories",
+  "highSpending": "High spending level",
+  "goodSavings": "Good savings level",
+  "emergencyFund": "Emergency fund",
+  "months": "mo."
+}

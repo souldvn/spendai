@@ -1,4 +1,7 @@
 import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import { getTranslator } from "./i18n";
+import {analyze} from "./reports";
 
 import {
   getFirestore,
@@ -43,6 +46,9 @@ export interface UserSettings {
   defaultCurrency: 'USD' | 'RUB';
   reports?: UserReportsSettings;
   lastUpdated: Date;
+  language?: 'en' | 'ru';
+  currencySymbol?: string;
+  currencyRate?: number;
 }
 
 export interface UserBalance {
@@ -109,14 +115,22 @@ export async function getUserSettings(userId: string): Promise<UserSettings | nu
 
 // firebaseConfig.ts
 export async function getAllUsersReportsSettings() {
-  try {
-    const snapshot = await getDocs(collection(db, 'userReportsSettings'));
-    return snapshot.docs.map(doc => ({ userId: doc.id, reports: doc.data() }));
-  } catch (error) {
-    console.error('Error getting all users reports settings:', error);
-    return [];
-  }
+  const snapshot = await getDocs(collection(db, 'userSettings'));
+  const users = snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      userId: data.userId, // берём userId из самого документа
+      reports: data.reports,
+      defaultCurrency: data.defaultCurrency,
+      // добавь другие нужные поля, если нужно
+    };
+  });
+  
+
+  console.log('[getAllUsersReportsSettings] Пользователи с отчетами:', users);
+  return users;
 }
+
 
 
 export async function getUserReportContent(userId: string, type: 'daily' | 'weekly' | 'monthly') {
@@ -278,111 +292,137 @@ export async function updateUserBalance(userId: string, newBalance: number): Pro
 }
 
 export async function generateUserReport(
-  userId: string, 
+  userId: string,
   reportType: 'daily' | 'weekly' | 'monthly'
 ): Promise<string> {
   try {
-    // Получаем все транзакции пользователя
-    const allTransactions = await getUserTransactions(userId);
-    
-    // Определяем период для фильтрации
+    // 1. Получаем данные
+    const [allTransactions, settings, balance] = await Promise.all([
+      getUserTransactions(userId),
+      getUserSettings(userId),
+      getUserBalance(userId)
+    ]);
+
+    // Проверка данных
+    if (!settings?.defaultCurrency) {
+      throw new Error('User settings not found');
+    }
+
+    if (isNaN(Number(balance))) {
+      throw new Error(`Invalid balance: ${balance}`);
+    }
+
+    const isRub = settings.defaultCurrency === 'RUB';
+    const currencySymbol = isRub ? '₽' : '$';
+    const exchangeRate = 80;
+
+    // 2. Фильтрация транзакций по периоду
     const periodMap = {
       daily: 'day',
       weekly: 'week',
       monthly: 'month'
     };
     
-    // Фильтруем транзакции
     const filteredTransactions = filterTransactionsByPeriod(
       allTransactions,
       periodMap[reportType] as 'day' | 'week' | 'month'
     );
 
-    // Получаем настройки пользователя
-    const settings = await getUserSettings(userId);
-    const currencySymbol = settings?.defaultCurrency === 'USD' ? '$' : '₽';
-    
-    // Анализируем данные (используем логику из вашего компонента Analytics)
-    const totalExpenses = filteredTransactions
-      .filter(t => t.amount < 0)
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    // 3. Анализ данных
+    const {
+      income = 0,
+      expenses = 0,
+      expensesByCategory = {}
+    } = analyzeTransactions(filteredTransactions) || {};
 
-    const totalIncome = filteredTransactions
-      .filter(t => t.amount > 0)
-      .reduce((sum, t) => sum + t.amount, 0);
+    // Преобразование валют
+    const convertedIncome = isRub ? income * exchangeRate : income;
+    const convertedExpenses = isRub ? expenses * exchangeRate : expenses;
+    const convertedBalance = isRub ? Number(balance) * exchangeRate : Number(balance);
 
-    const balance = await getUserBalance(userId);
-
-    // Анализ категорий (аналогично вашему коду)
-    const expensesByCategory = filteredTransactions
-      .filter(t => t.amount < 0)
-      .reduce((acc: {category: string; amount: number}[], t) => {
-        const existing = acc.find(e => e.category === t.category);
-        if (existing) {
-          existing.amount += Math.abs(t.amount);
-        } else {
-          acc.push({
-            category: t.category,
-            amount: Math.abs(t.amount)
-          });
-        }
-        return acc;
-      }, []);
-
-    const topCategories = expensesByCategory
-      .map(({category, amount}) => ({
-        category,
-        amount,
-        percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0
-      }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 3);
-
-    // Формируем текст отчёта
-    let reportText = `📊 ${reportType === 'daily' ? 'Ежедневный' : 
-                     reportType === 'weekly' ? 'Еженедельный' : 'Ежемесячный'} отчёт\n`;
-    reportText += '——————————————\n';
-    reportText += `💰 Баланс: ${balance.toFixed(2)} ${currencySymbol}\n`;
-    reportText += `📈 Доходы: ${totalIncome.toFixed(2)} ${currencySymbol}\n`;
-    reportText += `📉 Расходы: ${totalExpenses.toFixed(2)} ${currencySymbol}\n`;
-    
-    if (totalIncome > 0) {
-      const savingsRate = ((totalIncome - totalExpenses) / totalIncome) * 100;
-      reportText += `💵 Накопления: ${savingsRate.toFixed(1)}%\n`;
+    const convertedExpensesByCategory: Record<string, number> = {};
+    for (const [category, amount] of Object.entries(expensesByCategory)) {
+      convertedExpensesByCategory[category] = isRub ? amount * exchangeRate : amount;
     }
-    
-    reportText += '——————————————\n';
-    reportText += `💳 Операций: ${filteredTransactions.length}\n`;
-    
+
+    // 4. Формирование отчёта
+    let report = `📊 ${reportType === 'daily' ? 'Daily' : reportType === 'weekly' ? 'Weekly' : 'Monthly'} Report\n`;
+    report += '——————————————\n';
+    report += `💰 Balance: ${convertedBalance.toFixed(2)} ${currencySymbol}\n`;
+    report += `📈 Income: ${convertedIncome.toFixed(2)} ${currencySymbol}\n`;
+    report += `📉 Expenses: ${convertedExpenses.toFixed(2)} ${currencySymbol}\n`;
+
+    // Сбережения
+    if (convertedIncome > 0) {
+      const savingsRate = ((convertedIncome - convertedExpenses) / convertedIncome) * 100;
+      report += `💵 Savings Rate: ${savingsRate.toFixed(1)}%\n`;
+    }
+
+    // Топ категорий расходов
+    const topCategories = Object.entries(convertedExpensesByCategory)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([cat, amount]) => ({
+        category: cat,
+        amount,
+        percentage: convertedExpenses > 0 ? (amount / convertedExpenses) * 100 : 0
+      }));
+
     if (topCategories.length > 0) {
-      reportText += '🏷️ Топ категории:\n';
+      report += '——————————————\n';
+      report += '🏷️ Top Categories:\n';
       topCategories.forEach((cat, i) => {
-        reportText += `${i+1}. ${cat.category}: ${cat.amount.toFixed(2)} ${currencySymbol} (${cat.percentage.toFixed(1)}%)\n`;
+        report += `${i + 1}. ${cat.category}: ${cat.amount.toFixed(2)} ${currencySymbol} (${cat.percentage.toFixed(1)}%)\n`;
       });
     }
-    
-    reportText += '——————————————\n';
-    
-    // Добавляем анализ финансового здоровья (из вашего кода)
-    const expenseRatio = totalIncome > 0 ? totalExpenses / totalIncome : 0;
-    const balanceCoverage = totalExpenses > 0 ? balance / totalExpenses : 0;
-    
-    if (expenseRatio > 0.8) {
-      reportText += '⚠️ Высокий уровень расходов\n';
-    } else if (expenseRatio < 0.5) {
-      reportText += '✅ Хороший уровень накоплений\n';
-    }
-    
-    if (balanceCoverage < 3) {
-      reportText += `ℹ️ Финансовая подушка: ${balanceCoverage.toFixed(1)} мес.\n`;
+
+    // Финансовые рекомендации
+    report += '——————————————\n';
+    if (convertedIncome > 0 && convertedExpenses / convertedIncome > 0.8) {
+      report += '⚠️ High spending level detected\n';
     }
 
-    return reportText;
+    const coverage = convertedExpenses > 0 ? convertedBalance / convertedExpenses : 0;
+    if (coverage < 3) {
+      report += `ℹ️ Emergency fund covers ${coverage.toFixed(1)} months\n`;
+    }
+
+    return report;
+
   } catch (error) {
-    console.error('Error generating report:', error);
-    return '❌ Не удалось сформировать отчёт. Пожалуйста, попробуйте позже.';
+    console.error('Report generation failed:', error);
+    return '❌ Could not generate report. Please try again later.';
   }
 }
+
+
+// Новая безопасная функция анализа
+function analyzeTransactions(transactions: Transaction[]) {
+  try {
+    let income = 0;
+    let expenses = 0;
+    const byCategory: Record<string, number> = {};
+
+    transactions.forEach(t => {
+      const amount = Number(t.amount) || 0;
+      if (amount > 0) {
+        income += amount;
+      } else {
+        const absAmount = Math.abs(amount);
+        expenses += absAmount;
+        byCategory[t.category] = (byCategory[t.category] || 0) + absAmount;
+      }
+    });
+
+    return { income, expenses, expensesByCategory: byCategory };
+  } catch (error) {
+    console.error('Transaction analysis failed:', error);
+    return { income: 0, expenses: 0, expensesByCategory: {} };
+  }
+}
+
+
+
 
 export async function getUsersWithEnabledReports(): Promise<{userId: string; reports: UserReportsSettings}[]> {
   try {

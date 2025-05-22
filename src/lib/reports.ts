@@ -1,156 +1,122 @@
 import { Transaction } from '@/types';
-import { analyzeFinances } from './financeAI';
 import { useTranslation } from '@/hooks/useTranslation';
+import { getTranslator } from './i18n';
+
+
 
 interface ReportData {
   transactions: Transaction[];
   currentBalance: number;
   currencySymbol: string;
-  t: (key: string) => string;
+  currency: 'USD' | 'RUB';
+  currencyRate: number;
 }
 
-export function generateDailyReport({ transactions, currentBalance, currencySymbol, t }: ReportData): string {
-  const today = new Date();
-  const todayTransactions = transactions.filter(t => {
-    const transactionDate = new Date(t.date);
-    return transactionDate.toDateString() === today.toDateString();
-  });
-
-  const income = todayTransactions
+// 🔧 Подсчет доходов и расходов
+export function analyze(transactions: Transaction[], currencyRate: number) {
+  const income = transactions
     .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + Number(t.amount) * currencyRate, 0);
 
-  const expenses = todayTransactions
+  const expenses = transactions
     .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + Number(t.amount) * currencyRate, 0);
 
-  const expensesByCategory = todayTransactions
+  const expensesByCategory = transactions
     .filter(t => t.type === 'expense')
     .reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
+      const amount = Number(t.amount) * currencyRate;
+      acc[t.category] = (acc[t.category] || 0) + amount;
       return acc;
     }, {} as Record<string, number>);
 
-  return analyzeFinances({
-    totalIncome: income,
-    totalExpenses: expenses,
-    expensesByCategory: Object.entries(expensesByCategory).map(([category, amount]) => ({
-      category,
-      amount
-    })),
-    currentBalance,
-    currencySymbol,
-    t
-  });
+  return { income, expenses, expensesByCategory };
 }
 
-export function generateWeeklyReport({ transactions, currentBalance, currencySymbol, t }: ReportData): string {
-  const today = new Date();
-  const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - 7);
-
-  const weekTransactions = transactions.filter(t => {
-    const transactionDate = new Date(t.date);
-    return transactionDate >= weekStart && transactionDate <= today;
-  });
-
-  const income = weekTransactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const expenses = weekTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const expensesByCategory = weekTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-  return analyzeFinances({
-    totalIncome: income,
-    totalExpenses: expenses,
-    expensesByCategory: Object.entries(expensesByCategory).map(([category, amount]) => ({
-      category,
-      amount
-    })),
-    currentBalance,
-    currencySymbol,
-    t
-  });
+// 📅 Фильтрация по дате
+function isToday(date: Date): boolean {
+  const now = new Date();
+  return (
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear()
+  );
 }
 
-export function generateMonthlyReport({ transactions, currentBalance, currencySymbol, t }: ReportData): string {
-  const today = new Date();
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+function isThisWeek(date: Date): boolean {
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
 
-  const monthTransactions = transactions.filter(t => {
-    const transactionDate = new Date(t.date);
-    return transactionDate >= monthStart && transactionDate <= today;
-  });
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 7);
 
-  const income = monthTransactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const expenses = monthTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const expensesByCategory = monthTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-  return analyzeFinances({
-    totalIncome: income,
-    totalExpenses: expenses,
-    expensesByCategory: Object.entries(expensesByCategory).map(([category, amount]) => ({
-      category,
-      amount
-    })),
-    currentBalance,
-    currencySymbol,
-    t
-  });
+  return date >= startOfWeek && date < endOfWeek;
 }
 
-export function generateOptimizationReport({ transactions, currentBalance, currencySymbol, t }: ReportData): string {
-  const today = new Date();
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+function isThisMonth(date: Date): boolean {
+  const now = new Date();
+  return (
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear()
+  );
+}
 
-  const monthTransactions = transactions.filter(t => {
-    const transactionDate = new Date(t.date);
-    return transactionDate >= monthStart && transactionDate <= today;
-  });
+// 📄 Генерация отчётов
+// export function generateDailyReport(data: ReportData): string {
+//   const filtered = data.transactions.filter(tx => isToday(new Date(tx.date)));
+//   const { income, expenses, expensesByCategory } = analyze(filtered, data.currencyRate);
 
-  const expensesByCategory = monthTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
+//   let report = `📅 Ежедневный отчет\n\n`;
+//   report += `Баланс: ${data.currencySymbol}${(data.currentBalance * data.currencyRate).toFixed(2)}\n`;
+//   report += `Общий доход: +${data.currencySymbol}${income.toFixed(2)}\n`;
+//   report += `Общие расходы: -${data.currencySymbol}${expenses.toFixed(2)}\n\n`;
 
-  const sortedCategories = Object.entries(expensesByCategory)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 3);
+//   if (Object.keys(expensesByCategory).length > 0) {
+//     report += `По категориям:\n`;
+//     for (const [cat, amt] of Object.entries(expensesByCategory)) {
+//       report += `• ${cat}: ${data.currencySymbol}${amt.toFixed(2)}\n`;
+//     }
+//   }
 
-  let report = `📊 ${t('settings.reports.optimization')}\n\n`;
-  report += `${t('settings.reports.topCategories')}:\n`;
+//   return report;
+// }
 
-  sortedCategories.forEach(([category, amount]) => {
-    const percentage = (amount / currentBalance) * 100;
-    report += `• ${t(`categories.${category}`)}: ${currencySymbol}${amount.toFixed(2)} (${percentage.toFixed(1)}%)\n`;
-  });
+export function generateWeeklyReport(data: ReportData): string {
+  const filtered = data.transactions.filter(tx => isThisWeek(new Date(tx.date)));
+  const { income, expenses, expensesByCategory } = analyze(filtered, data.currencyRate);
 
-  report += `\n💡 ${t('settings.reports.optimizationTips')}:\n`;
-  report += `• ${t('settings.reports.tip1')}\n`;
-  report += `• ${t('settings.reports.tip2')}\n`;
-  report += `• ${t('settings.reports.tip3')}\n`;
+  let report = `📅 Недельный отчет\n\n`;
+  report += `Баланс: ${data.currencySymbol}${(data.currentBalance * data.currencyRate).toFixed(2)}\n`;
+  report += `Общий доход: +${data.currencySymbol}${income.toFixed(2)}\n`;
+  report += `Общие расходы: -${data.currencySymbol}${expenses.toFixed(2)}\n\n`;
+
+  if (Object.keys(expensesByCategory).length > 0) {
+    report += `По категориям:\n`;
+    for (const [cat, amt] of Object.entries(expensesByCategory)) {
+      report += `• ${cat}: ${data.currencySymbol}${amt.toFixed(2)}\n`;
+    }
+  }
 
   return report;
-} 
+}
+
+export function generateMonthlyReport(data: ReportData): string {
+  const filtered = data.transactions.filter(tx => isThisMonth(new Date(tx.date)));
+  const { income, expenses, expensesByCategory } = analyze(filtered, data.currencyRate);
+
+  let report = `📅 Месячный отчет\n\n`;
+  report += `Баланс: ${data.currencySymbol}${(data.currentBalance * data.currencyRate).toFixed(2)}\n`;
+  report += `Общий доход: +${data.currencySymbol}${income.toFixed(2)}\n`;
+  report += `Общие расходы: -${data.currencySymbol}${expenses.toFixed(2)}\n\n`;
+
+  if (Object.keys(expensesByCategory).length > 0) {
+    report += `По категориям:\n`;
+    for (const [cat, amt] of Object.entries(expensesByCategory)) {
+      report += `• ${cat}: ${data.currencySymbol}${amt.toFixed(2)}\n`;
+    }
+  }
+
+  return report;
+}
