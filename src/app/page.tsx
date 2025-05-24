@@ -15,6 +15,8 @@ import { useBalance } from '@/context/BalanceContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useCurrency } from '@/context/CurrencyContext';
+const pie = '/icon/pie.svg';
+const bar = '/icon/bar.svg';
 
 const barChartData = [
   { name: 'Пн', amount: 45000 },
@@ -206,14 +208,14 @@ function HomeContent() {
   }
 
   return (
-    <main className={`min-h-screen pb-16 ${isLightTheme ? 'bg-gray-50' : 'bg-gray-900'}`}>
-  <div className="p-4">
+    <main className={`min-h-screen pb-16 ${isLightTheme ? 'bg-gray-50' : 'bg-gray-900'  }`} >
+  <div className="p-4 " >
     <div className={`rounded-lg p-6 mb-6 ${isLightTheme ? 'bg-white' : 'bg-gray-800'} shadow`}>
       <div className="flex justify-between items-center mb-6">
         <h1 className={`text-2xl font-bold ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>{t('home.myFinance')}</h1>
       </div>
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6" >
         <div>
           <div className="flex items-center gap-2">
             <p className="text-sm text-gray-500">{t('home.totalBalance')}</p>
@@ -231,37 +233,51 @@ function HomeContent() {
             {getCurrencySymbol()}{convertAmount(balance).toFixed(2)}
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setActiveChart('pie')}
-            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-              activeChart === 'pie'
-                ? 'bg-[#8B5CF6] text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {t('home.pieChart')}
-          </button>
-          <button
-            onClick={() => setActiveChart('bar')}
-            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-              activeChart === 'bar'
-                ? 'bg-[#8B5CF6] text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {t('home.barChart')}
-          </button>
-        </div>
+        
       </div>
 
-      <div className="h-64 mb-6">
+      <div className="h-59">
         {activeChart === 'pie' ? (
           <ExpenseChart expenses={expensesByCategory} income={0} />
         ) : (
           <BarChart data={sortedTransactionsByDate} />
         )}
       </div>
+      <div className="flex gap-2 justify-end mt-3">
+ <button
+  onClick={() => setActiveChart('pie')}
+  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors flex  items-center justify-center ${
+    activeChart === 'pie'
+      ? 'bg-[#8B5CF6] text-white'
+      : 'bg-gray-100 hover:bg-gray-200 text-black'
+  }`}
+>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
+
+      <path d="M9.07031 0.773438C5.03906 1.90312 1.88438 5.19375 0.91875 9.28125C0.69375 10.2328 0.632812 10.7719 0.632812 11.9297C0.6375 13.1484 0.703125 13.7203 0.960938 14.7469C1.7625 17.8969 3.90469 20.5922 6.80625 22.0969C8.47969 22.9687 10.2094 23.3906 12.1125 23.3906C16.9266 23.3906 21.2484 20.2969 22.8516 15.6984C23.0813 15.0422 23.25 14.3766 23.25 14.1375C23.25 13.8656 23.0859 13.6031 22.8281 13.4672L22.6219 13.3547L20.25 13.3687L17.8781 13.3828L17.6859 13.5094C17.5266 13.6125 17.4703 13.7016 17.2969 14.1047C16.5188 15.9469 15.1125 17.1375 13.2188 17.5453C12.6375 17.6719 11.5453 17.6766 11.0016 17.5594C8.65313 17.0484 6.89063 15.2719 6.44063 12.9516C6.33281 12.4078 6.33281 11.4141 6.44063 10.8609C6.525 10.4109 6.74063 9.76875 6.92344 9.39844C7.51875 8.20781 8.64844 7.14844 9.9 6.60469C10.0875 6.525 10.3031 6.40312 10.3781 6.33281C10.6406 6.08906 10.6406 6.1125 10.6406 3.55312V1.19531L10.5328 1.00781C10.3969 0.768749 10.1203 0.609375 9.84375 0.614061C9.72656 0.614061 9.37969 0.684374 9.07031 0.773438Z" fill="currentColor" fillOpacity="0.88" />
+      <path d="M13.9786 0.689063C13.777 0.7875 13.6083 0.989063 13.5473 1.20938C13.4723 1.49063 13.4864 5.78906 13.5661 6.01406C13.6645 6.28594 13.763 6.36563 14.3301 6.63281C15.7036 7.28438 16.6692 8.23594 17.3255 9.58594C17.4895 9.92344 17.6583 10.2328 17.7051 10.2797C17.9489 10.4953 18.0051 10.5 20.4239 10.5C22.9692 10.5 22.9411 10.5 23.2176 10.1766C23.4661 9.87656 23.4426 9.58125 23.063 8.42813C22.5239 6.78281 21.5864 5.24531 20.3536 3.975C18.8489 2.41875 17.0958 1.36406 15.0567 0.773438C14.4145 0.590626 14.2083 0.576563 13.9786 0.689063Z" fill="currentColor" fillOpacity="0.88" />
+
+
+  </svg>
+</button>
+
+<button
+  onClick={() => setActiveChart('bar')}
+  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors flex items-center justify-center ${
+    activeChart === 'bar'
+      ? 'bg-[#8B5CF6] text-white'
+      : 'bg-gray-100 hover:bg-gray-200 text-black'
+  }`}
+>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
+    <path d="M17.6968 1.0762C16.9074 1.28709 16.2908 1.91976 16.0806 2.72114C15.9731 3.12417 15.9731 19.8735 16.0806 20.2766C16.2908 21.0873 16.912 21.7153 17.7155 21.9262C18.1078 22.0246 19.8922 22.0246 20.2845 21.9262C21.088 21.7153 21.7092 21.0873 21.9194 20.2766C22.0269 19.8735 22.0269 3.12417 21.9194 2.72114C21.7092 1.91038 21.088 1.2824 20.2845 1.07151C19.9062 0.973095 18.0658 0.977781 17.6968 1.0762Z" fill="currentColor" fillOpacity="0.88" />
+    <path d="M10.696 7.07619C9.90614 7.28706 9.2892 7.91967 9.07888 8.72098C8.97138 9.12867 8.97606 19.8737 9.07888 20.2861C9.2892 21.0921 9.91549 21.7153 10.7241 21.9262C11.1026 22.0246 12.8974 22.0246 13.2759 21.9262C14.0845 21.7153 14.7108 21.0921 14.9211 20.2861C15.0239 19.8737 15.0286 9.12867 14.9211 8.72098C14.7108 7.9103 14.0892 7.28238 13.2853 7.0715C12.9067 6.9731 11.0652 6.97778 10.696 7.07619Z" fill="currentColor" fillOpacity="0.88" />
+    <path d="M2.69525 11.0798C1.90491 11.3007 1.28761 11.9633 1.07716 12.8027C0.974279 13.2199 0.974279 19.7777 1.07716 20.1949C1.28761 21.0441 1.90959 21.7018 2.71395 21.9227C3.10678 22.0258 4.89322 22.0258 5.28605 21.9227C6.09041 21.7018 6.71239 21.0441 6.92284 20.1949C7.02572 19.7777 7.02572 13.2199 6.92284 12.8027C6.71239 11.9535 6.09041 11.2958 5.28605 11.0749C4.90725 10.9718 3.06469 10.9767 2.69525 11.0798Z" fill="currentColor" fillOpacity="0.88" />
+  </svg>
+</button>
+
+</div>
+
 
       <div className="space-y-4">
         <h2 className={`text-lg font-semibold ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>{t('home.recentTransactions')}</h2>
@@ -272,20 +288,25 @@ function HomeContent() {
             <div
               key={transaction.id}
               onClick={() => setSelectedTransaction(transaction)}
-              className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors duration-200 ${
-                isLightTheme
-                  ? 'bg-gray-50 hover:bg-gray-100'
-                  : 'bg-gray-700 hover:bg-gray-600'
-              }`}
-            >
+              className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors duration-200 relative ${
+    isLightTheme
+      ? 'bg-gray-50 hover:bg-gray-100'
+      : 'bg-gray-700 hover:bg-gray-600'
+  }`}
+  style={{
+    borderLeft: `6px solid ${transaction.color}`,
+  }}
+>
               <div className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: transaction.color }}
+                  style={{ backgroundColor: 'white' }}
                 >
-                  <span className="text-white font-medium">
-                    {t(`categories.${transaction.category}`).charAt(0)}
-                  </span>
+                  <img
+                            src={`/icon/${transaction.category.toLowerCase()}.svg`}
+                            alt={transaction.category}
+                            className="w-5 h-5," 
+                          />
                 </div>
                 <div>
                   <p className={`font-medium ${isLightTheme ? 'text-gray-900' : 'text-white'}`}>

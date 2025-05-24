@@ -19,7 +19,7 @@ export const translations = {
       settings: 'Settings'
     },
     home: {
-      myFinance: 'My Finance',
+      myFinance: 'SmartSpend',
       totalBalance: 'Total Balance',
       addTransaction: 'Add Transaction',
       recentTransactions: 'Recent Transactions',
@@ -140,7 +140,8 @@ export const translations = {
       debt: 'Debt Repayment',
       investment: 'Investment Income',
       salary: 'Salary',
-      business: 'Business Income'
+      business: 'Business Income',
+      refund: 'Refund'
     },
     history: {
       title: 'Transaction History',
@@ -194,7 +195,7 @@ export const translations = {
       settings: 'Настройки'
     },
     home: {
-      myFinance: 'Мои финансы',
+      myFinance: 'SmartSpend',
       totalBalance: 'Общий баланс',
       addTransaction: 'Добавить транзакцию',
       recentTransactions: 'Последние транзакции',
@@ -312,7 +313,7 @@ export const translations = {
       savings: 'Сбережения и инвестиции',
       other: 'Другие расходы',
       gifts: 'Подарки',
-      debt: 'Погашение долга',
+      refund: 'Возврат долга',
       investment: 'Доход от инвестиций',
       salary: 'Зарплата',
       business: 'Доход от бизнеса'

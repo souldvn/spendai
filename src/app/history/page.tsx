@@ -268,15 +268,20 @@ function HistoryContent() {
                         ? 'bg-gray-50 hover:bg-gray-100' 
                         : 'bg-gray-700 hover:bg-gray-600'
                     }`}
+                    style={{
+    borderLeft: `6px solid ${transaction.color}`,
+  }}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3" >
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: transaction.color }}
+                        
                       >
-                        <span className="text-white font-medium">
-                          {transaction.category.charAt(0)}
-                        </span>
+                        <img
+                            src={`/icon/${transaction.category.toLowerCase()}.svg`}
+                            alt={transaction.category}
+                            className="w-5 h-5," 
+                          />
                       </div>
                       <div>
                         <p className={`font-medium ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>

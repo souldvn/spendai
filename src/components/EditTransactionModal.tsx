@@ -92,12 +92,12 @@ export default function EditTransactionModal({
         </button>
         
         <h2 className={`text-xl font-semibold mb-4 ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>
-          {t('common.editTransaction')}
+          {t('Edit Transaction')}
         </h2>
         
         <div className="mb-4">
           <label className={`block text-sm font-medium mb-1 ${isLightTheme ? 'text-gray-700' : 'text-gray-300'}`}>
-            {t('common.amount')}
+            {t('Amount')}
           </label>
           <div className="relative">
             <span className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isLightTheme ? 'text-gray-500' : 'text-gray-400'}`}>
