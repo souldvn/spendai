@@ -278,26 +278,34 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
                 <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
-            <h2 className="text-xl font-semibold">Add transaction</h2>
+            <h2
+  className={`text-xl font-semibold ${
+    isLightTheme ? 'text-gray-800' : 'text-white'
+  }`}
+>
+  Add transaction
+</h2>
+
           </div>
-          <div className="flex space-x-4 mb-6">
-            <button 
-              onClick={() => setIsExpense(true)}
-              className={`px-6 py-2 rounded-full text-sm font-medium ${
-                isExpense ? 'bg-[#8B5CF6] text-white' : 'text-gray-500'
-              }`}
-            >
-              {t('home.expenses')}
-            </button>
-            <button 
-              onClick={() => setIsExpense(false)}
-              className={`px-6 py-2 rounded-full text-sm font-medium ${
-                !isExpense ? 'bg-[#8B5CF6] text-white' : 'text-gray-500'
-              }`}
-            >
-              {t('home.income')}
-            </button>
-          </div>
+          <div className="flex w-full space-x-4 mb-6">
+  <button 
+    onClick={() => setIsExpense(true)}
+    className={`flex-1 px-6 py-2 rounded-full text-sm font-medium ${
+      isExpense ? 'bg-[#8B5CF6] text-white' : 'text-gray-500 bg-gray-100'
+    }`}
+  >
+    {t('home.expenses')}
+  </button>
+  <button 
+    onClick={() => setIsExpense(false)}
+    className={`flex-1 px-6 py-2 rounded-full text-sm font-medium ${
+      !isExpense ? 'bg-[#8B5CF6] text-white' : 'text-gray-500 bg-gray-100'
+    }`}
+  >
+    {t('home.income')}
+  </button>
+</div>
+
           
           <div className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto"> 
             {categories.map((category) => (
@@ -326,14 +334,21 @@ export function AddTransaction({ isOpen, onClose, onAddTransaction }: AddTransac
             ))}
           </div>
           <button
-            onClick={() => selectedCategory && setStep('amount')}
-            disabled={!selectedCategory}
-            className={`w-full py-4 rounded-2xl font-medium mt-6 ${
-              selectedCategory ? 'bg-[#8B5CF6] text-white' : 'bg-gray-100 text-gray-400'
-            }`}
-          >
-            {t('common.next')}
-          </button>
+  onClick={() => selectedCategory && setStep('amount')}
+  disabled={!selectedCategory}
+  className={`w-full py-4 rounded-2xl font-medium mt-6 transition-colors duration-200 ${
+    selectedCategory
+      ? isLightTheme
+        ? 'bg-[#8B5CF6] text-white'
+        : 'bg-[#8B5CF6] text-white'
+      : isLightTheme
+        ? 'bg-gray-100 text-gray-400'
+        : 'bg-[#4a4a4d] text-gray-500'
+  }`}
+>
+  {t('common.next')}
+</button>
+
         </div>
       </div>
     );
