@@ -1,4 +1,9 @@
 import { Telegraf } from 'telegraf';
+import { useSearchParams } from 'next/navigation';
+
+const params = useSearchParams();
+const userId = params.get('userId');
+
 
 const token = process.env.TELEGRAM_BOT_TOKEN!;
 if (!token) throw new Error('Bot token is required');
@@ -7,7 +12,7 @@ const bot = new Telegraf(token);
 
 // Команды
 bot.start((ctx) => {
-  const webAppUrl = 'https://smartspendai.netlify.app';
+  const webAppUrl = `https://smartspendai.netlify.app?userId=${userId}`;
   ctx.reply(
     'Привет! Я бот для управления финансами. Нажми кнопку ниже, чтобы открыть приложение:',
     {
