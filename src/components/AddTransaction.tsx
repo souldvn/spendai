@@ -22,7 +22,7 @@ const health = '/icon/health.svg';
 const debts = '/icon/debts.svg';
 const savings = '/icon/savings.svg';
 const investment = '/icon/investment.svg';
-const refund = '/icon/pogash.svg';
+const refund = '/icon/refund.svg';
 
 
 

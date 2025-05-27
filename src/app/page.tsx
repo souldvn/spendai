@@ -215,6 +215,16 @@ function HomeContent() {
         <h1 className={`text-2xl font-bold ${isLightTheme ? 'text-gray-800' : 'text-white'}`}>{t('home.myFinance')}</h1>
       </div>
 
+
+      <div
+  className={`cursor-pointer p-4 rounded-xl transition-colors duration-200 relative ${
+    isLightTheme
+      ? 'bg-gray-50 hover:bg-gray-100'
+      : 'bg-gray-700 hover:bg-gray-600'
+  }`}
+>
+
+
       <div className="flex items-center justify-between mb-6" >
         <div>
           <div className="flex items-center gap-2">
@@ -275,6 +285,8 @@ function HomeContent() {
     <path d="M2.69525 11.0798C1.90491 11.3007 1.28761 11.9633 1.07716 12.8027C0.974279 13.2199 0.974279 19.7777 1.07716 20.1949C1.28761 21.0441 1.90959 21.7018 2.71395 21.9227C3.10678 22.0258 4.89322 22.0258 5.28605 21.9227C6.09041 21.7018 6.71239 21.0441 6.92284 20.1949C7.02572 19.7777 7.02572 13.2199 6.92284 12.8027C6.71239 11.9535 6.09041 11.2958 5.28605 11.0749C4.90725 10.9718 3.06469 10.9767 2.69525 11.0798Z" fill="currentColor" fillOpacity="0.88" />
   </svg>
 </button>
+
+</div>
 
 </div>
 
