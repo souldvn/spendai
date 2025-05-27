@@ -7,15 +7,17 @@ export const bot = new Telegraf(token);
 
 // Обработчики команд (минимальный набор)
 bot.start((ctx) => {
-  return ctx.reply(
-    'Привет! Я бот для управления финансами.',
+  const userId = ctx.from?.id;
+  if (!userId) return ctx.reply('Ошибка: не удалось получить ID пользователя.');
+
+  const webAppUrl = `https://smartspendai.netlify.app?userId=${userId}`;
+
+  ctx.reply(
+    'Привет! Я бот для управления финансами. Нажми кнопку ниже, чтобы открыть приложение:',
     {
       reply_markup: {
         inline_keyboard: [
-          [{ 
-            text: 'Открыть приложение', 
-            web_app: { url: 'https://smartspendai.netlify.app' } 
-          }]
+          [{ text: 'Открыть приложение', web_app: { url: webAppUrl } }]
         ]
       }
     }
