@@ -24,7 +24,6 @@ export function EditBalanceModal({
 
   useEffect(() => {
     if (isOpen) {
-      // Convert the USD balance to current currency for display
       const convertedBalance = convertAmount(currentBalance);
       console.log('Setting initial balance:', convertedBalance, 'in', currency);
       setBalance(convertedBalance.toString());
@@ -35,7 +34,6 @@ export function EditBalanceModal({
     const newBalance = parseFloat(balance);
     if (!isNaN(newBalance)) {
       console.log('Saving balance:', newBalance, 'in', currency, 'with rate:', exchangeRates[currency]);
-      // Convert from current currency to USD
       const amountInUSD = convertToUSD(newBalance);
       console.log('Converted to USD:', amountInUSD);
       onSave(amountInUSD);
@@ -45,23 +43,20 @@ export function EditBalanceModal({
 
   const handleCurrencyChange = async (newCurrency: 'USD' | 'RUB') => {
     console.log('Changing currency from', currency, 'to', newCurrency);
-    // Update currency in context (which will save to Firebase)
     setCurrency(newCurrency);
     
-    // Update all transactions to reflect the new currency
+
     if (transactions && transactions.length > 0) {
       try {
-        // Transactions are already stored in USD, no need to convert
         for (const transaction of transactions) {
           console.log('Transaction amount in USD:', transaction.amount);
-          // No need to update transaction amounts as they are stored in USD
         }
       } catch (error) {
         console.error('Error updating transactions:', error);
       }
     }
 
-    // Update the displayed balance
+
     const newBalance = convertAmount(currentBalance);
     console.log('Updating displayed balance to:', newBalance, 'in', newCurrency);
     setBalance(newBalance.toString());
