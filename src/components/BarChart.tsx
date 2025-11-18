@@ -14,7 +14,6 @@ interface BarChartProps {
 export default function BarChart({ data }: BarChartProps) {
   const { convertAmount, getCurrencySymbol } = useCurrency();
 
-  // Convert amounts to current currency
   const convertedData = data.map(item => ({
     ...item,
     amount: convertAmount(item.amount)
