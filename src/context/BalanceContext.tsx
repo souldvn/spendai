@@ -18,7 +18,7 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
   const { currency, exchangeRates } = useCurrency();
 
-  // Get userId from localStorage
+
   useEffect(() => {
     const savedUserId = localStorage.getItem('userId');
     if (savedUserId) {
@@ -26,14 +26,12 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Load balance from Firebase when userId is available
   useEffect(() => {
     async function loadBalance() {
       if (!userId) return;
       
       try {
         const userBalance = await getUserBalance(userId);
-        // Store the balance in USD (base currency)
         console.log('Loading balance in USD:', userBalance);
         setBalance(userBalance);
       } catch (error) {
@@ -51,7 +49,6 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
     if (!userId) return;
     
     try {
-      // The balance is already in USD, no need to convert
       console.log('Setting balance in USD:', newBalance);
       await updateUserBalance(userId, newBalance);
       setBalance(newBalance);
