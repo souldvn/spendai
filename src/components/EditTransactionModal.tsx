@@ -30,7 +30,6 @@ export default function EditTransactionModal({
   const { convertAmount, convertToUSD, getCurrencySymbol } = useCurrency();
   const { t } = useTranslation();
 
-  // Initialize amount in current currency
   useEffect(() => {
     if (isOpen) {
       const amountInCurrentCurrency = convertAmount(Math.abs(transaction.amount));
@@ -40,14 +39,12 @@ export default function EditTransactionModal({
 
   const handleSave = async () => {
     try {
-      // Convert from current currency to USD
       const amountInUSD = convertToUSD(Number(amount));
       const newAmount = transaction.amount < 0 ? -amountInUSD : amountInUSD;
       
       await updateTransaction(transaction.id, newAmount);
       onEdit({ ...transaction, amount: newAmount });
       
-      // Update balance in context
       const amountDiff = newAmount - transaction.amount;
       setBalance(balance + amountDiff);
       onClose();
@@ -58,7 +55,6 @@ export default function EditTransactionModal({
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Allow only numbers and one decimal point
     if (/^\d*\.?\d{0,2}$/.test(value) || value === '') {
       setAmount(value);
     }
@@ -67,7 +63,6 @@ export default function EditTransactionModal({
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
-      // Call onDelete before closing
       onDelete(transaction.id);
       onClose();
     } catch (error) {
