@@ -29,11 +29,11 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Types
+
 export interface UserReportsSettings {
   daily: boolean;
   weekly: boolean;
@@ -57,7 +57,7 @@ export interface UserBalance {
   lastUpdated: Date;
 }
 
-// User settings
+
 
 
 
@@ -82,7 +82,7 @@ export function filterTransactionsByPeriod(
       startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       break;
     default:
-      startDate = new Date(0); // Все транзакции
+      startDate = new Date(0); 
   }
 
   return transactions.filter(t => t.date >= startDate);
@@ -119,10 +119,9 @@ export async function getAllUsersReportsSettings() {
   const users = snapshot.docs.map(doc => {
     const data = doc.data();
     return {
-      userId: data.userId, // берём userId из самого документа
+      userId: data.userId, 
       reports: data.reports,
       defaultCurrency: data.defaultCurrency,
-      // добавь другие нужные поля, если нужно
     };
   });
   
@@ -396,7 +395,7 @@ export async function generateUserReport(
 }
 
 
-// Новая безопасная функция анализа
+
 function analyzeTransactions(transactions: Transaction[]) {
   try {
     let income = 0;
