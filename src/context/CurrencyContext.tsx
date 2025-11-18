@@ -18,13 +18,11 @@ interface CurrencyContextType {
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
-// Initial exchange rates (will be updated from API)
 const initialExchangeRates = {
   USD: 1,
   RUB: 90,
 };
 
-// API key for exchangerate-api.com
 const API_KEY = '0d2f54a752b9241693a52b4a';
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
@@ -34,7 +32,6 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Get userId from localStorage
   useEffect(() => {
     const savedUserId = localStorage.getItem('userId');
     if (savedUserId) {
@@ -112,7 +109,6 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
   const convertToUSD = useCallback((amount: number) => {
     console.log('Converting amount:', amount, 'from', currency, 'to USD with rate:', exchangeRates[currency]);
-    // Convert from target currency to USD
     return amount / exchangeRates[currency];
   }, [currency, exchangeRates]);
 
